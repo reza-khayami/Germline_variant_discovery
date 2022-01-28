@@ -1,1 +1,1 @@
-# NGS_pipelines
+# NGS pipelines
