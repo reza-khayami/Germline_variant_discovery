@@ -18,7 +18,7 @@
 - [Evaluate callset](#Evaluate-callset)
 - [Functional Annotation](#Functional-Annotation)
  
-![](https://doc-00-90-docs.googleusercontent.com/docs/securesc/ukbe88t0fjafimk2ma5n0e2lm57nhhpt/7ngug6d52paulu5flu5hqoq6gs420cu6/1643391600000/03300952448340018413/10869494293900274643/1HKtzOeobgOVjCXEUE0-5378ocBz6Age7?authuser=0&nonce=53ichpq6b40se&user=10869494293900274643&hash=1jukoceo9ivoqevjb9hs72boalnd5dfn)
+![](https://github.com/R-K94/Germline_variant_discovery/blob/main/01.png)
 
 
 
