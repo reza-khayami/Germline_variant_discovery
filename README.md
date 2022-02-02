@@ -182,9 +182,7 @@ bwa mem -M -t 4 \
   --CREATE_INDEX true --MAX_RECORDS_IN_RAM 500000
   ```
   
- ``` -R '@RG\tID:'${sample}'\tSM:'${sample}'\tLB:'${sample}'\tPL:Illumina'``` means adding read group label to output file, which is required by GATK. ```AddOrReplaceReadGroups``` in GATK can the same thing, either. The read group in BAM file looks like:
-
-```@RG	ID:test	SM:test	LB:test	PL:Illumina```
+ ``` -R '@RG\tID:'${sample}'\tSM:'${sample}'\tLB:'${sample}'\tPL:Illumina'``` means adding read group label to output file, which is required by GATK. ```AddOrReplaceReadGroups``` in GATK can the same thing, either. The read group in BAM file looks like:```@RG	ID:test	SM:test	LB:test	PL:Illumina```
 
 
 
@@ -205,17 +203,21 @@ bwa mem -M -t 4 \
 ```samtools view -c -f4 ${sample}.sorted.bam```
 - Or you want to count the *aligned* reads you, can use
 ```samtools view -c -F4 ${sample}.sorted.bam```
-- To subset from a bam file, first make bam and sort it then subset then sort again
-```samtools view -h ${sample}.sorted.bam NC_000001.11:17000000-18678365 | \
+- To subset from a bam file, first make bam and sort it then subset then sort again.
+```
+samtools view -h ${sample}.sorted.bam NC_000001.11:17000000-18678365 | \
 gatk SortSam \
 -I /dev/stdin \
   -O ./chr1.sorted.bam \
   -SO coordinate \
-  --CREATE_INDEX true --MAX_RECORDS_IN_RAM 500000 ```
+  --CREATE_INDEX true --MAX_RECORDS_IN_RAM 500000
+  ```
+  
 - if you want to convert bam to fastq:  
 ```bedtools bamtofastq -i ./chr1.sorted.bam \
                       -fq ./chr1.end1.fq \
-                      -fq2 ./chr1.end2.fq```
+                      -fq2 ./chr1.end2.fq
+                      ```
 
 
 #### 4. Lane merging (optional) <a name="Lane-merging-(optional)"></a>
