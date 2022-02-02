@@ -213,8 +213,7 @@ gatk SortSam \
 - if you want to convert bam to fastq:  
 ```bedtools bamtofastq -i ./chr1.sorted.bam \
                       -fq ./chr1.end1.fq \
-                      -fq2 ./chr1.end2.fq
-                      ```
+                      -fq2 ./chr1.end2.fq```
 
 
 #### 4. Lane merging (optional) <a name="Lane-merging-(optional)"></a>
