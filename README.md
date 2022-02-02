@@ -56,23 +56,11 @@ resources_broad_hg38_v0_Axiom_Exome_Plus.genotypes.all_populations.poly.hg38.vcf
 The latest version of hg38 reference genome can be downloaded from [NCBI](https://ftp.ncbi.nlm.nih.gov/genomes/refseq/vertebrate_mammalian/Homo_sapiens/all_assembly_versions/),[ENSEMBL](https://ftp.ensembl.org/pub/current_fasta/homo_sapiens/dna/) or [UCSC](https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/).
 
 There are some descrepancies between these genomes and NCBI version is recommended ([see the details here.](https://genome.ucsc.edu/FAQ/FAQgenes.html#ncbiRefseq)).
-Also, NCBI uses different chromosome naming than UCSC and ENSEMBL. The namings can be seen in ```*_assembly_report.txt``` file in the genome directory. Forexample the information on GRCh38.p13 is [here](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.39_GRCh38.p13/GCF_000001405.39_GRCh38.p13_assembly_report.txt).
+Also, NCBI uses different chromosome naming than UCSC and ENSEMBL. The namings can be seen in ```*_assembly_report.txt``` file in the genome directory. For example the information on GRCh38.p13 is [here](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.39_GRCh38.p13/GCF_000001405.39_GRCh38.p13_assembly_report.txt).
+- The NCBI nomenclature is like this: NC_000001.11
+- The ensembl nomenclature is like this: 1
+- The UCSC nomenclature is like this: chr
 
-The NCBI nomenclature is like this: NC_000001.11
-
-The ensembl nomenclature is like this: 1
-
-The UCSC nomenclature is like this: chr
-
-###### Index reference
-Reference genome index and dictionary is needed.
-
-```
-bwa index -p prefix reference.fa
-
-gatk CreateSequenceDictionary -R reference.fa
-samtools faidx reference.fa
-```
 
 #### dbSNP
 The latest version of dbsnp can be downloaded from [here](https://ftp.ncbi.nih.gov/snp/latest_release/).
@@ -166,8 +154,17 @@ Multiqc yourfilesdirectory
 
 #### 3. Alignment <a name="Alignment"></a>
 
-The raw reads are now cleaned up of artefacts so we can align the read to the reference.
 
+**Index reference** 
+Before alignment Reference genome index and dictionary is needed for alingment and haplotype calling.
+```
+bwa index -p prefix reference.fa
+
+gatk CreateSequenceDictionary -R reference.fa
+samtools faidx reference.fa
+```
+
+After trimming, the raw reads are cleaned up of artefacts so we can align the read to the reference.
 ```
 bwa mem -M -t 4 \
       
