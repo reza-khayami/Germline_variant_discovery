@@ -371,7 +371,7 @@ gatk DepthOfCoverage \
   --start 1 --stop 500 --nBins 499  \
   -R ${genome} \
   -O ${bam}.sorted.dup.recal.coverage \
-  -I ${bam}.sorted.dup.recal.bam
+  -I ${bam}.sorted.dup.recal.bam \
   -L ${intervals} \
    -ip 100 \
 ```
@@ -408,7 +408,7 @@ The precision is important because smaller SD will allow detecting a wider range
 CollectAlignmentSummaryMetrics \
          R=reference_sequence.fasta \
          I=input.bam \
-         O=output.txt
+         O=output.txt \
 --METRIC_ACCUMULATION_LEVEL LIBRARY
 ```
 
