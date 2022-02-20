@@ -433,14 +433,20 @@ Analysis-Ready Reads (BAM format as well as its index, output of pre-processing)
 
 ### Output
 
-A variant information file (VCF) contains SNPs and Indels, along with its index
+A variant information file ([VCF](https://www.internationalgenome.org/wiki/Analysis/vcf4.0)) contains SNPs and Indels, along with its index
 
 ### Tools
 
-GATK
+GATK HaplotypeCaller
+for more info about HaplotypeCaller check [this link](https://gatk.broadinstitute.org/hc/en-us/articles/360037225632-HaplotypeCaller)
 
 ---------------------------------------------------------
 ### Steps
+
+#### 1. Variant Calling <a name="Variant-discovery"></a>
+You can perform this step in vcf mode or in gvcf mode. For more information check [this link](https://gatk.broadinstitute.org/hc/en-us/articles/360035531812-GVCF-Genomic-Variant-Call-Format#:~:text=The%20key%20difference%20between%20a,a%20cohort%20in%20subsequent%20steps.)
+
+##### 1.1 VCF calling workflow
 
 ```
 gatk HaplotypeCaller \
@@ -450,6 +456,84 @@ gatk HaplotypeCaller \
 -bamout ${bam}.relaligned.bam \
 --tmp-dir ${TMP}
 ```
+
+##### 1.2 GVCF calling workflow
+```
+gatk HaplotypeCaller \
+-R ${genome} \
+-I ${bam}.sorted.dup.recal.bam \
+-O ${vcf}.g.vcf.gz \
+-bamout ${bam}.relaligned.bam \
+--tmp-dir ${TMP}
+-ERC GVCF
+```
+If you have used GVCS calling, now you need to joint call the genotypes:
+
+
+
+###### joint genotyping on a singular sample
+
+``` 
+gatk GenotypeGVCFs \
+   -R ${genome} \
+   -V ${vcf}.g.vcf.gz \
+   -O ${vcf}.vcf.gz
+   
+   ```
+###### joint genotyping on a cohort
+
+To gain more inforamtion on variant calling on a cohort check [this link](https://gatk.broadinstitute.org/hc/en-us/articles/360035890411?id=3893)
+ 
+ 1. Data aggregation
+ 
+```
+gatk GenomicsDBImport \
+      -V data/gvcfs/mother.g.vcf.gz \
+      -V data/gvcfs/father.g.vcf.gz \
+      -V data/gvcfs/son.g.vcf.gz \
+      --genomicsdb-workspace-path my_database \
+      --tmp-dir=/path/to/large/tmp \
+      -L 20
+```
+
+2. Joint genotyping
+```
+gatk GenotypeGVCFs \
+   -R Homo_sapiens_assembly38.fasta \
+   -V gendb://my_database \
+   -O output.vcf.gz
+```
+
+---------------------------------------------------------------------------------------------
+### Notes 
+Based on the FORMAT description, the genotype (GT) is the first information provided (separated by :).
+
+Three different values are available:
+- 0/0 : homozgote reference (with the REF columns value)
+- 1/1 : homozgote variant (with the ALT columns value)
+- 1/0 : heterozygote (with both REF and ALT columns values)
+
+***How many SNPs were found?***
+```grep -v "^#" file.vcf | wc -l```
+
+***The number of indel can be computed using this command:***
+
+```
+
+grep -v "^#" file.vcf | awk '{ if(length($4) != length($5)) { print $0 } }' | wc -l
+
+```
+
+***Largest indels size can be computed by extending the previous command while printing the size of the indel:***
+
+```
+
+grep -v "^#" file.vcf | \
+awk '{ if(length($4) != length($5)) { print sqrt((length($4) - length($5))^2) "\t"$0 } }' | \
+sort -k1,1nr | head
+
+```
+
 
 ## Callset refinement <a name="Callset-refinement"></a>
 ### Purpose
