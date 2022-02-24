@@ -541,9 +541,9 @@ sort -k1,1nr | head
 The GATK's variant calling tools are designed to be very lenient in order to achieve a high degree of sensitivity. This is good because it minimizes the chance of missing real variants, but it does mean that we need to filter the raw callset they produce in order to reduce the amount of false positives, which can be quite large.
 
 As of 2022 GATK offers different approaches to site-level variant filtration. Site-level filtering involves using INFO field annotations in filtering:
-- [Hard Filtering](https://gatk.broadinstitute.org/hc/en-us/articles/360035890471)
-- [VQSR](https://gatk.broadinstitute.org/hc/en-us/articles/360035531612)
-- [CNN](https://gatk.broadinstitute.org/hc/en-us/articles/360037226672-CNNScoreVariants)
+- [Hard Filtering](https://gatk.broadinstitute.org/hc/en-us/articles/360035890471)  
+- [VQSR](https://gatk.broadinstitute.org/hc/en-us/articles/360035531612)  
+- [CNN](https://gatk.broadinstitute.org/hc/en-us/articles/360037226672-CNNScoreVariants)  
 
 #### Hard Filtering
 Hard-filtering consists of choosing specific thresholds for one or more annotations and throwing out any variants that have annotation values above or below the set thresholds. By annotations, we mean properties or statistics that describe for each variant e.g. what the sequence context is like around the variant site, how many reads covered it, how many reads covered each allele, what proportion of reads were in forward vs reverse orientation, and so on.
@@ -573,18 +573,18 @@ raw variant information file (VCF) along with its index
 Analysis ready variant information file (VCF) along with its index
 
 ### Tools
-filteration:
-GATK [SelectVariants](https://gatk.broadinstitute.org/hc/en-us/articles/360037055952-SelectVariants)
-GATK [VariantFiltration](https://gatk.broadinstitute.org/hc/en-us/articles/360037434691-VariantFiltration)
-GATK [VariantRecalibrator](https://gatk.broadinstitute.org/hc/en-us/articles/360036510892-VariantRecalibrator)
-GATK [ApplyVQSR](https://gatk.broadinstitute.org/hc/en-us/articles/360037056912-ApplyVQSR)
-GATK [CNNScoreVariants](https://gatk.broadinstitute.org/hc/en-us/articles/360037226672-CNNScoreVariants)
-GATK [FilterVariantTranches](https://gatk.broadinstitute.org/hc/en-us/articles/360037227632-FilterVariantTranches)
+filteration:  
+GATK [SelectVariants](https://gatk.broadinstitute.org/hc/en-us/articles/360037055952-SelectVariants)  
+GATK [VariantFiltration](https://gatk.broadinstitute.org/hc/en-us/articles/360037434691-VariantFiltration)  
+GATK [VariantRecalibrator](https://gatk.broadinstitute.org/hc/en-us/articles/360036510892-VariantRecalibrator)  
+GATK [ApplyVQSR](https://gatk.broadinstitute.org/hc/en-us/articles/360037056912-ApplyVQSR)  
+GATK [CNNScoreVariants](https://gatk.broadinstitute.org/hc/en-us/articles/360037226672-CNNScoreVariants)  
+GATK [FilterVariantTranches](https://gatk.broadinstitute.org/hc/en-us/articles/360037227632-FilterVariantTranches)  
 
-refinment:
-GATK [CalculateGenotypePosteriors](https://gatk.broadinstitute.org/hc/en-us/articles/360037226592-CalculateGenotypePosteriors)
-GATK [VariantFiltration](https://gatk.broadinstitute.org/hc/en-us/articles/360037434691-VariantFiltration)
-GATK [VariantAnnotator](https://gatk.broadinstitute.org/hc/en-us/articles/360037224652-VariantAnnotator-BETA-)
+refinment:    
+GATK [CalculateGenotypePosteriors](https://gatk.broadinstitute.org/hc/en-us/articles/360037226592-CalculateGenotypePosteriors)  
+GATK [VariantFiltration](https://gatk.broadinstitute.org/hc/en-us/articles/360037434691-VariantFiltration)  
+GATK [VariantAnnotator](https://gatk.broadinstitute.org/hc/en-us/articles/360037224652-VariantAnnotator-BETA-)  
 
 
 ------------------------------------------------------------
@@ -608,11 +608,11 @@ gatk SelectVariants \
 ```
 
 ### 2. Vairant Filteration
--[A] Hard Filtering
--[B] VQSR
--[C] CNN
+- [A] Hard Filtering  
+- [B] VQSR
+- [C] CNN
 
-#### A Hard Filtering
+#### [A] Hard Filtering
 For more information visit [this site](https://gatk.broadinstitute.org/hc/en-us/articles/360035890471) and [this site](https://gatk.broadinstitute.org/hc/en-us/articles/360035531112--How-to-Filter-variants-either-with-VQSR-or-by-hard-filtering#2).
 
 To filter on multiple expressions, provide each in separate expression. For INFO level annotations, the parameter is ```-filter```, which should be immediately followed by the corresponding ```–-filter-name``` label. Here we show basic hard-filtering thresholds.
@@ -981,5 +981,73 @@ gatk VariantAnnotator \
 
 ## Evaluate callset <a name="Evaluate-callset"></a>
 
+
+Filtering is about balancing sensitivity and precision for research aims. ​For example, genome-wide association studies can afford to maximize sensitivity over precision such that there are more false positives in the callset. Conversely, downstream analyses that require high precision, e.g. those that cannot tolerate false positive calls because validating variants is expensive, maximize precision over sensitivity such that the callset loses true positives.
+
+visit [GATK](https://gatk.broadinstitute.org/hc/en-us/articles/360035531572) for more info.
+
+### Input
+Variant information file (VCF) along with its index
+
+### Output
+Metrics table
+
+### Tools
+[CollectVariantCallingMetrics](https://gatk.broadinstitute.org/hc/en-us/articles/360036363592-CollectVariantCallingMetrics-Picard-#--OUTPUT)  
+[VariantEval](https://gatk.broadinstitute.org/hc/en-us/articles/360037224592-VariantEval-BETA-)  
+[GenotypeConcordance](https://gatk.broadinstitute.org/hc/en-us/articles/360037425091-GenotypeConcordance-Picard-)  
+[Hap.py](https://github.com/Illumina/hap.py)  
+
+### Steps
+
+#### Using Hap.py
+GA4GH (​Global Alliance for Genomics and Health​) recommends using ​hap.py​ for stratified variant evaluations (1, 2)
+
+
+#### Using GATK
+#### 1. Compare callset against a known population callset
+```
+gatk CollectVariantCallingMetrics \
+    -I filtered.vcf.gz \
+    --DBSNP Homo_sapiens_assembly38.dbsnp138.vcf \
+    -SD Homo_sapiens_assembly38.dict \
+    -O metrics 
+```
+This produces detailed and summary metrics report files. The summary metrics provide cohort-level variant metrics and the detailed metrics segment variant metrics for each sample in the callset. The detail metrics give the same metrics as the summary metrics for the samples plus several additional metrics. These are explained in detail at https://broadinstitute.github.io/picard/picard-metric-definitions.html.
+
+
+#### 2. Compare callset against a known population callset
+As of this writing, VariantEval is in beta status in GATK v4.1. And so we provide an example GATK3 command, where the tool is in production status. GATK3 Dockers are available at https://hub.docker.com/r/broadinstitute/gatk3.
+
+```
+java -jar gatk3.jar \
+    -T VariantEval \
+    -R Homo_sapiens_assembly38.fasta \
+    -eval cohort.vcf.gz \
+    -D Homo_sapiens_assembly38.dbsnp138.vcf \
+    -noEV \
+    -EV CompOverlap -EV IndelSummary -EV TiTvVariantEvaluator \
+    -EV CountVariants -EV MultiallelicSummary \
+    -o cohortEval.txt
+```
+This produces a file containing a table for each of the evaluation modules, e.g. CompOverlap.
+
+
+
+#### 3. Calculate Genotype Concordance
+
+```
+ java -jar picard.jar GenotypeConcordance \\
+       CALL_VCF=input.vcf \\
+       CALL_SAMPLE=sample_name \\
+       O=gc_concordance.vcf \\
+       TRUTH_VCF=truth_set.vcf \\
+       TRUTH_SAMPLE=sample_in_truth \\
+       INTERVALS=confident.interval_list \\
+       MISSING_SITES_HOM_REF = true
+       
+       ```
+       
+  
 ## Functional annotation <a name="Functional-annotation"></a>
 
