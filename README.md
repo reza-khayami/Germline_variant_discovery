@@ -443,10 +443,10 @@ for more info about HaplotypeCaller check [this link](https://gatk.broadinstitut
 ---------------------------------------------------------
 ### Steps
 
-#### 1. Variant Calling <a name="Variant-discovery"></a>
+#### Variant Calling <a name="Variant-discovery"></a>
 You can perform this step in vcf mode or in gvcf mode. For more information check [this link](https://gatk.broadinstitute.org/hc/en-us/articles/360035531812-GVCF-Genomic-Variant-Call-Format#:~:text=The%20key%20difference%20between%20a,a%20cohort%20in%20subsequent%20steps.)
 
-##### 1.1 VCF calling workflow
+**VCF calling workflow**
 
 ```
 gatk HaplotypeCaller \
@@ -456,8 +456,8 @@ gatk HaplotypeCaller \
 -bamout ${bam}.relaligned.bam \
 --tmp-dir ${TMP}
 ```
-
-##### 1.2 GVCF calling workflow
+------------------------------------------------------------------------------------
+**GVCF calling workflow**
 ```
 gatk HaplotypeCaller \
 -R ${genome} \
@@ -471,7 +471,7 @@ If you have used GVCS calling, now you need to joint call the genotypes:
 
 
 
-###### joint genotyping on a singular sample
+##### joint genotyping on a singular sample
 
 ``` 
 gatk GenotypeGVCFs \
@@ -480,11 +480,11 @@ gatk GenotypeGVCFs \
    -O ${vcf}.vcf.gz
    
    ```
-###### joint genotyping on a cohort
+##### joint genotyping on a cohort
 
 To gain more inforamtion on variant calling on a cohort check [this link](https://gatk.broadinstitute.org/hc/en-us/articles/360035890411?id=3893)
  
- 1. Data aggregation
+ **1. Data aggregation**
  
 ```
 gatk GenomicsDBImport \
@@ -496,7 +496,7 @@ gatk GenomicsDBImport \
       -L 20
 ```
 
-2. Joint genotyping
+**2. Joint genotyping**
 ```
 gatk GenotypeGVCFs \
    -R Homo_sapiens_assembly38.fasta \
@@ -537,12 +537,447 @@ sort -k1,1nr | head
 
 ## Callset refinement <a name="Callset-refinement"></a>
 ### Purpose
+## 1. Variant Filteration
+The GATK's variant calling tools are designed to be very lenient in order to achieve a high degree of sensitivity. This is good because it minimizes the chance of missing real variants, but it does mean that we need to filter the raw callset they produce in order to reduce the amount of false positives, which can be quite large.
+
+As of 2022 GATK offers different approaches to site-level variant filtration. Site-level filtering involves using INFO field annotations in filtering:
+- [Hard Filtering](https://gatk.broadinstitute.org/hc/en-us/articles/360035890471)
+- [VQSR](https://gatk.broadinstitute.org/hc/en-us/articles/360035531612)
+- [CNN](https://gatk.broadinstitute.org/hc/en-us/articles/360037226672-CNNScoreVariants)
+
+#### Hard Filtering
+Hard-filtering consists of choosing specific thresholds for one or more annotations and throwing out any variants that have annotation values above or below the set thresholds. By annotations, we mean properties or statistics that describe for each variant e.g. what the sequence context is like around the variant site, how many reads covered it, how many reads covered each allele, what proportion of reads were in forward vs reverse orientation, and so on.
+
+#### VQSR
+The established way to filter the raw variant callset is to use variant quality score recalibration (VQSR), which uses machine learning to identify annotation profiles of variants that are likely to be real, and assigns a VQSLOD score to each variant that is much more reliable than the QUAL score calculated by the caller. In the first step of this two-step process, the program builds a model based on training variants, then applies that model to the data to assign a well-calibrated probability to each variant call. We can then use this variant quality score in the second step to filter the raw call set, thus producing a subset of calls with our desired level of quality, fine-tuned to balance specificity and sensitivity.
+
+In order to achieve the best exome results one needs to use an exome SNP and/or indel callset with at least 30 samples. For users with experiments containing fewer exome samples there are several options to explore:
+Add additional samples for variant calling, either by sequencing additional samples or using publicly available exome bams from the 1000 Genomes Project (this option is used by the Broad exome production pipeline). Be aware that you cannot simply add VCFs from the 1000 Genomes Project. You must either call variants from the original BAMs jointly with your own samples, or (better) use the reference model workflow to generate GVCFs from the original BAMs, and perform joint genotyping on those GVCFs along with your own samples' GVCFs with GenotypeGVCFs.
+You can also try using the VQSR with the smaller variant callset, but experiment with argument settings (try adding ```--maxGaussians 4``` to your command line, for example). You should only do this if you are working with a non-model organism for which there are no available genomes or exomes that you can use to supplement your own cohort.
+
+#### CNN
+Single sample variant discovery uses HaplotypeCaller in its default single-sample mode to call variants in an analysis-ready BAM file. The VCF that HaplotypeCaller emits errs on the side of sensitivity, so some filtering is often desired. To filter variants first run the CNNScoreVariants tool. This tool annotates each variant with a score indicating the model's prediction of the quality of each variant. To apply filters based on those scores run the FIlterVariantTranches tool with SNP and INDEL sensitivity tranches appropriate for your task.
+
+## 2. Genotype Refinement
+
+While every study can benefit from increased data accuracy, this workflow is especially useful for analyses that are concerned with how many copies of each variant an individual has (e.g. in the case of loss of function) or with the transmission (or de novo origin) of a variant in a family.
+
+If a “gold standard” dataset for SNPs is available, that can be used as a very powerful set of priors on the genotype likelihoods in your data. For analyses involving families, a pedigree file describing the relatedness of the trios in your study will provide another source of supplemental information. If neither of these applies to your data, the samples in the dataset itself can provide some degree of genotype refinement.
+
+for more info check [GATK](https://gatk.broadinstitute.org/hc/en-us/articles/360035531432-Genotype-Refinement-workflow-for-germline-short-variants)
+
 ### Input
+raw variant information file (VCF) along with its index
+
 ### Output
+Analysis ready variant information file (VCF) along with its index
+
 ### Tools
-### References
+filteration:
+GATK [SelectVariants](https://gatk.broadinstitute.org/hc/en-us/articles/360037055952-SelectVariants)
+GATK [VariantFiltration](https://gatk.broadinstitute.org/hc/en-us/articles/360037434691-VariantFiltration)
+GATK [VariantRecalibrator](https://gatk.broadinstitute.org/hc/en-us/articles/360036510892-VariantRecalibrator)
+GATK [ApplyVQSR](https://gatk.broadinstitute.org/hc/en-us/articles/360037056912-ApplyVQSR)
+GATK [CNNScoreVariants](https://gatk.broadinstitute.org/hc/en-us/articles/360037226672-CNNScoreVariants)
+GATK [FilterVariantTranches](https://gatk.broadinstitute.org/hc/en-us/articles/360037227632-FilterVariantTranches)
+
+refinment:
+GATK [CalculateGenotypePosteriors](https://gatk.broadinstitute.org/hc/en-us/articles/360037226592-CalculateGenotypePosteriors)
+GATK [VariantFiltration](https://gatk.broadinstitute.org/hc/en-us/articles/360037434691-VariantFiltration)
+GATK [VariantAnnotator](https://gatk.broadinstitute.org/hc/en-us/articles/360037224652-VariantAnnotator-BETA-)
+
+
 ------------------------------------------------------------
 ### Steps
+### 1. INDEL and SNP separtion
+For hard filtering and VQSR you need to devide your VCF to two separate files:
+
+```
+# Subset to SNPs-only callset
+gatk SelectVariants \
+    -V cohort.vcf.gz \
+    -select-type SNP \
+    -O snps.vcf.gz
+
+# Subset to indels-only callset
+gatk SelectVariants \
+    -V cohort.vcf.gz \
+    -select-type INDEL \
+    -O indels.vcf.gz
+
+```
+
+### 2. Vairant Filteration
+-[A] Hard Filtering
+-[B] VQSR
+-[C] CNN
+
+#### A Hard Filtering
+For more information visit [this site](https://gatk.broadinstitute.org/hc/en-us/articles/360035890471) and [this site](https://gatk.broadinstitute.org/hc/en-us/articles/360035531112--How-to-Filter-variants-either-with-VQSR-or-by-hard-filtering#2).
+
+To filter on multiple expressions, provide each in separate expression. For INFO level annotations, the parameter is ```-filter```, which should be immediately followed by the corresponding ```–-filter-name``` label. Here we show basic hard-filtering thresholds.
+
+To filter based on FORMAT level annotations, use ```--genotype-filter-expression``` and ```--genotype-filter-name```.
+
+The GATK does not recommend use of compound filtering expressions, e.g. the logical || "OR". For such expressions, if a record is null for or missing a particular annotation in the expression, the tool negates the entire compound expression and so automatically passes the variant record even if it fails on one of the expressions.
+
+```
+#SNP
+gatk VariantFiltration \
+    -V snps.vcf.gz \
+    -filter "QD < 2.0" --filter-name "QD2" \
+    -filter "QUAL < 30.0" --filter-name "QUAL30" \
+    -filter "SOR > 3.0" --filter-name "SOR3" \
+    -filter "FS > 60.0" --filter-name "FS60" \
+    -filter "MQ < 40.0" --filter-name "MQ40" \
+    -filter "MQRankSum < -12.5" --filter-name "MQRankSum-12.5" \
+    -filter "ReadPosRankSum < -8.0" --filter-name "ReadPosRankSum-8" \
+    -O snps_filtered.vcf.gz
+    
+    #INDEL
+    gatk VariantFiltration \ 
+    -V indels.vcf.gz \ 
+    -filter "QD < 2.0" --filter-name "QD2" \
+    -filter "QUAL < 30.0" --filter-name "QUAL30" \
+    -filter "FS > 200.0" --filter-name "FS200" \
+    -filter "ReadPosRankSum < -20.0" --filter-name "ReadPosRankSum-20" \ 
+    -O indels_filtered.vcf.gz
+
+```
+
+
+This produces a VCF with the same variant records now annotated with filter status. Specifically, if a record passes all the filters, it receives a PASS label in the FILTER column. A record that fails a filter receives the filter name in the FILTER column, e.g. SOR3. If a record fails multiple filters, then each failing filter name appears in the FILTER column separated by semi-colons ;, e.g. ```MQRankSum-12.5;ReadPosRankSum-8````.
+
+The filteration settings provided are GATK's recommandation. For manual filtering you can visualize your data:
+First we need to extract the required data and make a table with [VariantsToTable](https://gatk.broadinstitute.org/hc/en-us/articles/360036896892-VariantsToTable).
+
+```
+gatk VariantsToTable \
+-V /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.giab.vcf.gz \
+-F CHROM -F POS -F QUAL \
+-F BaseQRankSum -F MQRankSum -F ReadPosRankSum \
+-F DP -F FS -F MQ -F QD -F SOR \
+-GF GQ \
+-O table.txt
+
+
+#if you want to compare your data calls with GIAB:
+#First we add annotations of giab sets to our data
+gatk VariantAnnotator \
+-V /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.vcf.gz \
+-O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.giab.vcf.gz \
+--resource:giab /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/GIAB/NCBI_HG001_GRCh38_1_22_v4.2.1_benchmark.vcf.gz \
+--expression giab.callsets 
+
+
+gatk VariantsToTable \
+-V /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.giab.vcf.gz \
+-F CHROM -F POS -F QUAL \
+-F BaseQRankSum -F MQRankSum -F ReadPosRankSum \
+-F DP -F FS -F MQ -F QD -F SOR \
+-F giab.callsets \
+-GF GQ \
+-O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.giab.txt
+```
+
+
+Next parts are in R
+
+```
+# plotting.R script loads ggplot and gridExtra libraries and defines functions to plot variant annotations 
+library(ggplot2)
+install.packages("gridExtra")
+library(gridExtra)
+
+require(ggplot2, quietly = TRUE)
+require(gridExtra, quietly = TRUE)
+
+get_legend<-function(myggplot){
+  tmp <- ggplot_gtable(ggplot_build(myggplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+}
+
+
+# Function for making density plots of a single annotation
+makeDensityPlot <- function(dataframe, xvar, split, xmin=min(dataframe[xvar], na.rm=TRUE), xmax=max(dataframe[xvar], na.rm=TRUE), alpha=0.5) {
+  
+  if(missing(split)) {
+    return(ggplot(data=dataframe, aes_string(x=xvar)) + xlim(xmin,xmax) + geom_density() )
+  }
+  else {
+    return(ggplot(data=dataframe, aes_string(x=xvar, fill=split)) + xlim(xmin,xmax) + geom_density(alpha=alpha) )
+  }
+}
+
+# Function for making scatter plots of two annotations
+makeScatterPlot <- function(dataframe, xvar, yvar, split, xmin=min(dataframe[xvar], na.rm=TRUE), xmax=max(dataframe[xvar], na.rm=TRUE), ymin=min(dataframe[yvar], na.rm=TRUE), ymax=max(dataframe[yvar], na.rm=TRUE), ptSize=1, alpha=0.6) {
+  if(missing(split)) {
+    return(ggplot(data=dataframe) + aes_string(x=xvar, y=yvar) + xlim(xmin,xmax) + ylim(ymin,ymax) + geom_point(size=ptSize, alpha=alpha) )
+  }
+  else {
+    return(ggplot(data=dataframe) + aes_string(x=xvar, y=yvar) + aes_string(color=split) + xlim(xmin,xmax) + ylim(ymin,ymax) + geom_point(size=ptSize, alpha=alpha) )
+  }
+}
+
+# Function for making scatter plots of two annotations with marginal density plots of each
+makeScatterPlotWithMarginalDensity <- function(dataframe, xvar, yvar, split, xmin=min(dataframe[xvar], na.rm=TRUE), xmax=max(dataframe[xvar], na.rm=TRUE), ymin=min(dataframe[yvar], na.rm=TRUE), ymax=max(dataframe[yvar], na.rm=TRUE), ptSize=1, ptAlpha=0.6, fillAlpha=0.5) {
+  empty <- ggplot()+geom_point(aes(1,1), colour="white") +
+    theme(
+      plot.background = element_blank(), 
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(), 
+      panel.border = element_blank(), 
+      panel.background = element_blank(),
+      axis.title.x = element_blank(),
+      axis.title.y = element_blank(),
+      axis.text.x = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank()
+    )
+  
+  if(missing(split)){
+    scatter <- ggplot(data=dataframe) + aes_string(x=xvar, y=yvar) + geom_point(size=ptSize, alpha=ptAlpha) + xlim(xmin,xmax) + ylim(ymin,ymax) 
+    plot_top <- ggplot(data=dataframe, aes_string(x=xvar)) + geom_density(alpha=fillAlpha) + theme(legend.position="none") + xlim(xmin,xmax) 
+    plot_right <- ggplot(data=dataframe, aes_string(x=yvar)) + geom_density(alpha=fillAlpha) + coord_flip() + theme(legend.position="none") + xlim(ymin,ymax) 
+  } 
+  else{
+    scatter <- ggplot(data=dataframe) + aes_string(x=xvar, y=yvar) + geom_point(size=ptSize, alpha=ptAlpha, aes_string(color=split)) + xlim(xmin,xmax) + ylim(ymin,ymax) 
+    plot_top <- ggplot(data=dataframe, aes_string(x=xvar, fill=split)) + geom_density(alpha=fillAlpha) + theme(legend.position="none") + xlim(xmin,xmax) 
+    plot_right <- ggplot(data=dataframe, aes_string(x=yvar, fill=split)) + geom_density(alpha=fillAlpha) + coord_flip() + theme(legend.position="none") + xlim(ymin,ymax) 
+  }
+  legend <- get_legend(scatter)
+  scatter <- scatter + theme(legend.position="none")
+  temp <- grid.arrange(plot_top, legend, scatter, plot_right, ncol=2, nrow=2, widths=c(4,1), heights=c(1,4))
+  return(temp)
+}
+
+
+
+library(readr)
+SNP.giab <- read_delim("/media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.giab.txt","\t", 
+                             escape_double = FALSE, col_types = cols(giab.callsets = col_character()), trim_ws = TRUE)
+                             #Remove col_types = cols(giab.callsets = col_character()) if you didn't annotate GIAB
+                             
+#Below are three different plotting functions. Uncomment them one at a time and see how the graph changes as you alter them. To uncomment, simply remove the # at the beginning of the line, and put it in front of the line you no longer want to graph.
+
+B = makeDensityPlot(SNP.giab, "QUAL") #base quality
+B1 = makeDensityPlot(SNP.giab, "QUAL", xmax=1000)
+
+#If you annotated GIAB you can add it to plot
+B2 = makeDensityPlot(SNP.giab, "QUAL", xmax=3000, split="giab.callsets")
+
+
+# Change up the parameters, e.g. add 'split="giab.callsets"', examine RankSums, FS and SOR
+C = makeDensityPlot(SNP.giab, "QD") # quality normalized by depth
+C = makeDensityPlot(SNP.giab, "QD", split="giab.callsets")
+C = makeDensityPlot(SNP.giab, "BaseQRankSum", split="giab.callsets")
+C = makeDensityPlot(SNP.giab, "MQRankSum", split="giab.callsets", xmax=1, xmin=-1)#pos= ref has a better quality, neg = variant has better quality
+C = makeDensityPlot(SNP.giab, "ReadPosRankSum", split="giab.callsets") #
+C = makeDensityPlot(SNP.giab, "FS", split="giab.callsets") #strand bias
+C = makeDensityPlot(SNP.giab, "SOR", split="giab.callsets") #strand odds ratio
+
+
+# When plotting two annotations, does the combination of the two tell us anything more than either did separately?
+# 
+#   Try adjusting the parameters.
+# Substitute in other annotations. For example, the following recreates the plot on the front page of the tutorial worksheet.
+# F = makeScatterPlotWithMarginalDensity(motherSNP.giab, "QUAL", "DP", split="set", xmax=10000, ymax=100, ptSize=0.5, ptAlpha=0.05)
+
+E = makeScatterPlotWithMarginalDensity(SNP.giab, 
+                                       "QD", "DP", 
+                                       split="giab.callsets", 
+                                       ymax=250, 
+                                       ptSize=0.5, ptAlpha=0.2)
+
+```
+
+
+
+#### B VQSR
+##### B.1 Calculate VQSLOD tranches
+```
+#calculate VQSLOD tranches for SNPs 
+time gatk VariantRecalibrator \
+--java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true' \
+	-R  ${genome} \
+	-V ${vcf}.vq.SNP.vcf \
+	-an QD -an MQ -an MQRankSum -an ReadPosRankSum -an FS -an SOR \
+	-mode SNP \
+		--resource:omni,known=false,training=true,truth=true,prior=12 databases/1000Gomni2.5/NCBI_1000G_omni2.5.hg38.vcf.gz \
+		--resource:1000G,known=false,training=true,truth=false,prior=10 databases/1000G_phase1_SNP/NCBI_1000G_phase1.snps.high_confidence.hg38.vcf.gz \
+	--resource:dbsnp,known=true,training=false,truth=false,prior=7 databases/dbsnp/GCF_000001405.39.gz \
+	--resource:hapmap,known=false,training=true,truth=true,prior=15 databases/Hapmap3.3/NCBI_hapmap_3.3.hg38.vcf \
+	-O ${vcf}.vq.SNP.calibrate.recal \
+	--tranches-file ${vcf}.vq.SNP.calibrate.cohort_snps.tranches \
+	--rscript-file ${vcf}.output.plots.R \
+	--tmp-dir ${TMP} \
+	-L ${intervals} \
+	-ip 100 \
+    
+    
+    
+#calculate VQSLOD tranches for INDELS
+gatk --java-options "-Xmx24g -Xms24g" VariantRecalibrator \
+    -V cohort_sitesonly.vcf.gz \
+    --trust-all-polymorphic \
+    -tranche 100.0 -tranche 99.95 -tranche 99.9 -tranche 99.5 -tranche 99.0 -tranche 97.0 -tranche 96.0 -tranche 95.0 -tranche 94.0 -tranche 93.5 -tranche 93.0 -tranche 92.0 -tranche 91.0 -tranche 90.0 \
+    -an FS -an ReadPosRankSum -an MQRankSum -an QD -an SOR -an DP \      
+    -mode INDEL \
+    --max-gaussians 4 \
+    -resource:mills,known=false,training=true,truth=true,prior=12:Mills_and_1000G_gold_standard.indels.hg38.vcf.gz \
+    -resource:axiomPoly,known=false,training=true,truth=false,prior=10:Axiom_Exome_Plus.genotypes.all_populations.poly.hg38.vcf.gz \
+    -resource:dbsnp,known=true,training=false,truth=false,prior=2:Homo_sapiens_assembly38.dbsnp138.vcf \
+    -O cohort_indels.recal \
+    --tranches-file cohort_indels.tranches \
+    	--tmp-dir ${TMP} \
+	-L ${intervals} \
+	-ip 100 \
+    
+```
+
+##### B.2 Filter on VQSLOD using ApplyVQSR
+
+```
+#SNP
+gatk --java-options "-Xmx5g -Xms5g" \
+    ApplyVQSR \
+    -V indel.recalibrated.vcf.gz \
+    --recal-file ${snps_recalibration} \
+    --tranches-file ${snps_tranches} \
+    --truth-sensitivity-filter-level 99.7 \
+    --create-output-variant-index true \
+    -mode SNP \
+    -O snp.recalibrated.vcf.gz \
+        	--tmp-dir ${TMP} \
+	-L ${intervals} \
+	-ip 100 \
+    
+    
+#INDEL
+gatk --java-options "-Xmx5g -Xms5g" \
+    ApplyVQSR \
+    -V cohort_excesshet.vcf.gz \
+    --recal-file cohort_indels.recal \
+    --tranches-file cohort_indels.tranches \
+    --truth-sensitivity-filter-level 99.7 \
+    --create-output-variant-index true \
+    -mode INDEL \
+    -O indel.recalibrated.vcf.gz
+            	--tmp-dir ${TMP} \
+	-L ${intervals} \
+	-ip 100 \
+    
+
+```
+
+**99.9% is the recommended default VQSLOD cutoff for SNPs in human genomic analysis.**
+
+#### C CNN
+Annotate a VCF with scores from a Convolutional Neural Network (CNN). This tool streams variants and their reference context to a python program, which evaluates a pre-trained neural network on each variant. The default models were trained on single-sample VCFs. The default model should not be used on VCFs with annotations from joint call-sets. The neural network performs convolutions over the reference sequence surrounding the variant and combines those features with a multilayer perceptron on the variant annotations. 2D models convolve over aligned reads as well as the reference sequence, and variant annotations. 2D models require a SAM/BAM file as input and for the --tensor-type argument to be set to a tensor type which requires reads, as in the example below. Pre-trained 1D and 2D models are included in the distribution. It is possible to train your own models with the tools: CNNVariantWriteTensors and CNNVariantTrain. CNNVariantTrain will create a json architecture file and an hd5 weights file, which you can use with this tool. The advanced argument `info-annotation-keys` is available for models trained with different sets info field annotations. In order to do this you must first train your own model with the tools CNNVariantWriteTensors and CNNVariantTrain. Otherwise, providing this argument with anything but the standard set of annotations will result in an error.
+
+for more info visit [GATK](https://gatk.broadinstitute.org/hc/en-us/articles/360037226672-CNNScoreVariants)
+
+##### C.1 Apply a Convolutional Neural Net to filter annotated variants
+
+```
+source activate gatk
+time gatk CNNScoreVariants \
+--java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true' \
+-I ${bam}.sorted.dup.recal.X.bam \
+-V ${vcf}.X.vcf \
+-R ${genome} \
+-O ${vcf}.CNN.X.vcf \
+--tensor-type read_tensor \
+--tmp-dir ${TMP} \
+   -L ${intervals} \
+   -ip 100 \
+
+```
+
+##### C.2 Apply tranche filtering
+
+```
+gatk FilterVariantTranches \
+--java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true' \
+-V ${vcf}.CNN.X.vcf \
+-O ${vcf}.CNN.filtered.X.vcf \
+--info-key CNN_2D \
+-resource ${hapmap} \
+-resource ${omni} \
+-resource ${G1000} \
+-resource ${dbsnp} \
+-resource ${mills} \
+--tmp-dir ${TMP} \
+-L ${intervals} \
+   -ip 100 \
+
+```
+
+### 3. Genotype Refinement
+
+While every study can benefit from increased data accuracy, this workflow is especially useful for analyses that are concerned with how many copies of each variant an individual has (e.g. in the case of loss of function) or with the transmission (or de novo origin) of a variant in a family.
+
+*pic here*
+https://drive.google.com/uc?id=15fdb6LwnB4Hxw3JAUBclkJnueaV1ehV-
+
+#### 3.1 Derive posterior probabilities of genotypes
+
+sing the Phred-scaled genotype likelihoods (PLs) for each sample, prior probabilities for a sample taking on a HomRef, Het, or HomVar genotype are applied to derive the posterior probabilities of the sample taking on each of those genotypes. A sample’s PLs were calculated by HaplotypeCaller using only the reads for that sample. By introducing additional data like the allele counts from the 1000 Genomes project and the PLs for other individuals in the sample’s pedigree trio, those estimates of genotype likelihood can be improved based on what is known about the variation of other individuals.
+
+SNP calls from the 1000 Genomes project capture the vast majority of variation across most human populations and can provide very strong priors in many cases. At sites where most of the 1000 Genomes samples are homozygous variant with respect to the reference genome, the probability of a sample being analyzed of also being homozygous variant is very high.
+
+For a sample for which both parent genotypes are available, the child’s genotype can be supported or invalidated by the parents’ genotypes based on Mendel’s laws of allele transmission. Even the confidence of the parents’ genotypes can be recalibrated, such as in cases where the genotypes output by HaplotypeCaller are apparent Mendelian violations.
+
+
+```
+gatk \
+   CalculateGenotypePosteriors \
+   -V indel.SNP.recalibrated_99.9.vcf.gz \
+   -ped trio_pedigree.ped \
+   --supporting-callsets af-only-gnomad.hg38.vcf.gz \
+   -O trio_refined_99.9.vcf.gz \
+      --tmp-dir ${TMP} \
+-L ${intervals} \
+   -ip 100 \
+  
+  
+  #for supporting you can also use 1000genome phase 3
+```
+
+#### 3.2 Filter low quality genotypes
+After the posterior probabilities are calculated for each sample at each variant site, genotypes with GQ < 20 based on the posteriors are filtered out. GQ20 is widely accepted as a good threshold for genotype accuracy, indicating that there is a 99% chance that the genotype in question is correct. Tagging those low quality genotypes indicates to researchers that these genotypes may not be suitable for downstream analysis. However, as with the VQSR, a filter tag is applied, but the data is not removed from the VCF.
+
+```
+gatk VariantFiltration \
+-R ${genome} \
+-V ${vcf} \
+--genotype-filter-expression "GQ<20" \
+--genotype-filter-name "lowGQ" \
+-O ${vcf}.GQ20 \
+      --tmp-dir ${TMP} \
+-L ${intervals} \
+   -ip 100 \
+```
+
+#### 3.3 Annotate possible de novo mutations
+Only If you have a trio. Dont use this for single sample
+
+Using the posterior genotype probabilities, possible de novo mutations are tagged. Low confidence de novos have child GQ >= 10 and AC < 4 or AF < 0.1%, whichever is more stringent for the number of samples in the dataset. High confidence de novo sites have all trio sample GQs >= 20 with the same AC/AF criterion.
+
+```
+gatk VariantAnnotator \
+-R reference.fasta \
+-V input.vcf \
+-A PossibleDeNovo \
+-O output.vcf \
+--tmp-dir ${TMP} \
+   -L ${intervals} \
+   -ip 100 \
+
+```
+
 
 ## Evaluate callset <a name="Evaluate-callset"></a>
 
