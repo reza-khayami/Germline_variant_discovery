@@ -1044,6 +1044,12 @@ python2 install.py ~/hap.py-install --with-rtgtools
 hap.py truth.vcf query.vcf -f confident.bed -o output_prefix -r reference.fa
 ```
 ##### Extra options:
+hese settings are the defaults in the GA4GH best-practices
+
+```
+--no-leftshift --no-decompose --engine=vcfeval
+```
+
 
 Restrict analysis to given (dense) regions (similar to using -T in bcftools). One example use for this is to restrict the analysis to exome-only data.
 
