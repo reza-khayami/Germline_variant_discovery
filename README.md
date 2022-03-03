@@ -1000,12 +1000,88 @@ Metrics table
 
 ### Steps
 
-#### Using Hap.py
-GA4GH (​Global Alliance for Genomics and Health​) recommends using ​hap.py​ for stratified variant evaluations (1, 2)
+### 1. Using hap.py
+GA4GH (​Global Alliance for Genomics and Health​) recommends using ​hap.py​ for stratified variant evaluations ([1](https://docs.google.com/spreadsheets/d/1zdzNpldjYLGuuFlE_lcwDad-O7aoAUuTZkt4JmKD-Pw/edit#gid=1080374770), [2](https://docs.google.com/document/d/1jjC9TFsiDZxen0KTc2Obx6A3AHjkwAQnPV-BPhxsGn8/edit))
+
+for more information check [Haplotype Comparison Tools](https://github.com/Illumina/hap.py) and [Hap.py User's Manual
+](https://github.com/Illumina/hap.py/blob/master/doc/happy.md).
+
+#### 1.1 Installing hap.py
+
+Before installing hap.py, you need to install a set of requirments:
+
+- CMake > 2.8
+- GCC/G++ 4.9.2+ for compiling
+- Boost 1.55+
+- Python 2, version 2.7.8 or greater
+- Python packages: Pandas, Numpy, Scipy, pysam, bx-python
+- Java 1.8 when using vcfeval.
+- boost 1.55.0
+- ant 1.9.2
+
+Download and install boost:
+
+```
+cd ~
+wget http://downloads.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.tar.bz2
+tar xjf boost_1_55_0.tar.bz2
+cd boost_1_55_0
+./bootstrap.sh --with-libraries=filesystem,chrono,thread,iostreams,system,regex,test,program_options
+./b2 --prefix=$HOME/boost_1_55_0_install install
+```
+
+install hap.py:
+
+```
+python2 install.py ~/hap.py-install --with-rtgtools
+
+```
 
 
-#### Using GATK
-#### 1. Compare callset against a known population callset
+#### 1.2 Run hap.py
+
+```
+hap.py truth.vcf query.vcf -f confident.bed -o output_prefix -r reference.fa
+```
+##### Extra options:
+
+Restrict analysis to given (dense) regions (similar to using -T in bcftools). One example use for this is to restrict the analysis to exome-only data.
+
+```
+-T TARGETS_BEDFILE, --target-regions TARGETS_BEDFILE
+```
+
+
+To specify a default reference file location, you can run
+
+```
+export HGREF=path-to-your-reference.fa
+```
+
+
+The ```--roc``` switch specifies the feature to filter on. Hap.py translates the truth and query GQ(X) fields into the INFO fields T_GQ and Q_GQ, it tries to use GQX first, if this is not present, it will use GQ. When run without internal preprocessing any other input INFO field can be used (e.g. --roc INFO.VQSLOD for GATK).
+
+The ```--roc-filter``` switch may be used to specify the particular VCF filter which implements a threshold on the quality score. When calculating filtered TP/FP counts, this filter will be removed, and replaced with a threshold filter on the feature specified by ```--roc```. By default, a PASS and an ALL ROC will be computed corresponding to the variant counts with all filters enabled (PASS) and no filters (ALL). When ```--roc-filter``` is specified, a third ROC curve is computed named "SEL", which shows the performance for selectively-filtered variants.
+
+When computing precision/recall curves, we assume that higher quality scores are better, variants with scores higher than the variable threshold will "pass", all others will "fail".
+
+The output file will be comma-separated value files giving tp / fp / fn counts, as well as precision and recall for different thresholds of the ROC feature. Here is a full example (assuming the folder hap.py contains a clone of the hap.py repository, and that hap.py can be run through PATH):
+```
+hap.py hap.py/example/happy/PG_NA12878_hg38-chr21.vcf.gz \
+       hap.py/example/happy/NA12878-GATK3-chr21.vcf.gz \
+       -f hap.py/example/happy/PG_Conf_hg38-chr21.bed.gz \
+       -r hap.py/example/happy/hg38.chr21.fa \
+       -o gatk-all \
+       --roc QUAL --roc-filter LowQual
+       
+ 
+```
+
+#### 1.3 Visualize
+Please use the instructions given in [this page](https://github.com/Illumina/happyR).
+
+### 2. Using GATK
+#### 2.1. Compare callset against a known population callset
 ```
 gatk CollectVariantCallingMetrics \
     -I filtered.vcf.gz \
@@ -1016,7 +1092,7 @@ gatk CollectVariantCallingMetrics \
 This produces detailed and summary metrics report files. The summary metrics provide cohort-level variant metrics and the detailed metrics segment variant metrics for each sample in the callset. The detail metrics give the same metrics as the summary metrics for the samples plus several additional metrics. These are explained in detail at https://broadinstitute.github.io/picard/picard-metric-definitions.html.
 
 
-#### 2. Compare callset against a known population callset
+#### 2.2. Compare callset against a known population callset
 As of this writing, VariantEval is in beta status in GATK v4.1. And so we provide an example GATK3 command, where the tool is in production status. GATK3 Dockers are available at https://hub.docker.com/r/broadinstitute/gatk3.
 
 ```
@@ -1034,7 +1110,7 @@ This produces a file containing a table for each of the evaluation modules, e.g.
 
 
 
-#### 3. Calculate Genotype Concordance
+#### 2.3. Calculate Genotype Concordance
 
 ```
  java -jar picard.jar GenotypeConcordance \\
