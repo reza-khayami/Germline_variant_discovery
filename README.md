@@ -795,7 +795,7 @@ E = makeScatterPlotWithMarginalDensity(SNP.giab,
 
 
 
-#### B VQSR
+#### [B] VQSR
 ##### B.1 Calculate VQSLOD tranches
 ```
 #calculate VQSLOD tranches for SNPs 
@@ -874,7 +874,7 @@ gatk --java-options "-Xmx5g -Xms5g" \
 
 **99.9% is the recommended default VQSLOD cutoff for SNPs in human genomic analysis.**
 
-#### C CNN
+#### [C] CNN
 Annotate a VCF with scores from a Convolutional Neural Network (CNN). This tool streams variants and their reference context to a python program, which evaluates a pre-trained neural network on each variant. The default models were trained on single-sample VCFs. The default model should not be used on VCFs with annotations from joint call-sets. The neural network performs convolutions over the reference sequence surrounding the variant and combines those features with a multilayer perceptron on the variant annotations. 2D models convolve over aligned reads as well as the reference sequence, and variant annotations. 2D models require a SAM/BAM file as input and for the --tensor-type argument to be set to a tensor type which requires reads, as in the example below. Pre-trained 1D and 2D models are included in the distribution. It is possible to train your own models with the tools: CNNVariantWriteTensors and CNNVariantTrain. CNNVariantTrain will create a json architecture file and an hd5 weights file, which you can use with this tool. The advanced argument `info-annotation-keys` is available for models trained with different sets info field annotations. In order to do this you must first train your own model with the tools CNNVariantWriteTensors and CNNVariantTrain. Otherwise, providing this argument with anything but the standard set of annotations will result in an error.
 
 for more info visit [GATK](https://gatk.broadinstitute.org/hc/en-us/articles/360037226672-CNNScoreVariants)
