@@ -1037,7 +1037,10 @@ python2 install.py ~/hap.py-install --with-rtgtools
 
 ```
 
-
+**GA4GH recommendation**
+```
+rtg vcfeval -b ${truth.vcf} -c ${query.vcf} -o /hap.py_results/rtgHC/ -t ${ref_sdf} -e ${confidence.bed} --region=${my_regions}
+```
 #### 1.2 Run hap.py
 
 ```
