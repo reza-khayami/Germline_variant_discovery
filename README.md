@@ -1151,5 +1151,18 @@ A table with annotations
 ### Tools
 [Snpeff](pcingola.github.io/SnpEff), [Vep](https://grch37.ensembl.org/info/docs/tools/vep/index.html), [Annovar](https://annovar.openbioinformatics.org/en/latest/)
 
-### Steps
+### Required data
+A set of databases such as:
+
+**Functional Prediction Information:**
+SIFT, PolyPhen2, LRT, Mutation Taster, FATHMM, CADD & Mutation Assessor
+
+**Disease Association:**
+ClinVar, OMIM & COSMIC
+
+**Conservation Scores:**
+PhyloP, GERP++, phastCons & SiPhy
+
+**Population Frequencies:**
+1000 Genomes, GnomAD, ExAC, and Exome Variant Server
 
