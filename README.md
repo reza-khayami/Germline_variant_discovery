@@ -1166,3 +1166,70 @@ PhyloP, GERP++, phastCons & SiPhy
 **Population Frequencies:**
 1000 Genomes, GnomAD, ExAC, and Exome Variant Server
 
+### Steps
+Each of the mentioned softwares could be used for annotations. For more info read [this article](https://blog.goldenhelix.com/the-sate-of-variant-annotation-a-comparison-of-annovar-snpeff-and-vep/#:~:text=VEP%20and%20Annovar%20call%20this%20a%20stop%20gain%2C,signal%20for%20the%20intron%20to%20be%20spliced%20out.) although its outdated.
+
+#### SnpEff
+Note: this app uses databases with Ensembl chromosome name annotations. Therefore, keep in mind that you should change your chromosome names to Ensembl's version.
+
+```
+time bcftools annotate \
+--rename-chrs \
+ncbitoensembl.tsv \
+${vcf}.CNN.filtered.dbsnp.X.vcf > ${vcf}.CNN.filtered.dbsnp.Ensembl.X.vcf
+```
+After this step you can annotate your vcf:
+
+```
+#snpEff
+time java  -jar ~/snpEff/snpEff.jar eff \
+-c /home/myassi/snpEff/snpEff.config \
+-v -no-intergenic \
+-i vcf \
+-o vcf GRCh38.p13.RefSeq ${vcf}.CNN.filtered.dbsnp.Ensembl.X.vcf >  ${vcf}.CNN.filtered.dbsnp.Ensembl.snpEff.X.vcf
+
+
+#varType
+time java -jar ~/snpEff/SnpSift.jar varType  ${vcf}.CNN.filtered.dbsnp.Ensembl.snpEff.vcf > ${vcf}.CNN.filtered.dbsnp.Ensembl.snpEff.vartype.vcf
+#check file
+time java -jar ~/snpEff/SnpSift.jar vcfCheck  ${vcf}.CNN.filtered.dbsnp.Ensembl.snpEff.X.vcf
+
+#dbnsfp 40m
+time java -jar ~/snpEff/SnpSift.jar dbnsfp -v -db ${dbnsfp} ${vcf}.CNN.filtered.dbsnp.Ensembl.snpEff.X.vcf > ${vcf}.CNN.filtered.dbsnp.Ensembl.snpEff.dbnsfp.X.vcf
+time java -jar ~/snpEff/SnpSift.jar vcfCheck  ${vcf}.CNN.filtered.dbsnp.Ensembl.snpEff.vartype.dbnsfp.vcf
+
+#gwas
+time java -jar ~/snpEff/SnpSift.jar gwasCat -db ${gwas} ${vcf}.CNN.filtered.dbsnp.Ensembl.snpEff.dbnsfp.X.vcf > ${vcf}.CNN.filtered.dbsnp.Ensembl.snpEff.dbnsfp.gwas.X.vcf
+```
+
+#### Annovar
+Before using this annotation tool, first you should prepare your data:
+
+##### Normalization
+```
+bcftools norm -m-both -o ex1.step1.vcf ex1.vcf.gz
+
+bcftools norm -f human_g1k_v37.fasta -o ex1.step2.vcf ex1.step1.vcf
+```
+#### Format Conversion
+
+```
+convert2annovar.pl -format vcf4 -includeinfo -withzyg example/ex2.vcf -outfile ex2.avinput
+
+```
+The above command takes `ex2.vcf` as input file, and generate the `ex2.avinput` as output file. The 3 extra columns are zygosity status, genotype quality and read depth.
+
+
+#### Gene based annotation
+Before working on gene-based annotation, a gene definition file and associated FASTA file must be downloaded into a directory if they are not already downloaded. Let's call this directory as `humandb/`
+
+```
+annotate_variation.pl -downdb -buildver hg38 -webfrom annovar refGene humandb/
+```
+Technical Notes: The above command includes -webfrom annovar, because I already pre-built the FASTA file and included them in ANNOVAR distribution site. For other gene definition systems (such as GENCODE, CCDS) or for other species (such as mouse/fly/worm/yeast), the users needs to build the FASTA file themselves. See [this page](https://annovar.openbioinformatics.org/en/latest/user-guide/gene/) for more details.
+
+The gene-based annotation can be issued by the following command (by default, --geneanno -dbtype refGene is assumed):
+```
+annotate_variation.pl -out ex1 -build hg38 example/ex1.avinput humandb/
+```
+
