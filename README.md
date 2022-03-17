@@ -1131,7 +1131,8 @@ This produces a file containing a table for each of the evaluation modules, e.g.
        INTERVALS=confident.interval_list \\
        MISSING_SITES_HOM_REF = true
        
-       ```
+```
+       
        
   
 ## Functional annotation <a name="Functional-annotation"></a>
@@ -1141,13 +1142,14 @@ This produces a file containing a table for each of the evaluation modules, e.g.
 "The ultimate goal of the functional annotation process is to assign biologically relevant information to predicted polypeptides, and to the features they derive from ( e.g. gene, mRNA)." [ref](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5850084/)
 
 ### Input
-FASTQ format, Compressed or uncompressed, single end or paired end.
+Filtered variant information file (VCF) along with its index.
+
 
 ### Output
-BAM file and its index file ready for variant discovery
+A table with annotations
 
 ### Tools
-[BWA](https://github.com/lh3/bwa), [SAMtools](https://www.htslib.org/), [Bcftools](https://www.htslib.org/download/), [GATK](https://github.com/broadinstitute/gatk), [multiqc](https://multiqc.info/)
-A way to save space while working is to pipe the commands together. **Pipe tutorial [here](https://www.biostars.org/p/43677/)**.
+[Snpeff](pcingola.github.io/SnpEff), [Vep](https://grch37.ensembl.org/info/docs/tools/vep/index.html), [Annovar](https://annovar.openbioinformatics.org/en/latest/)
 
-### Required data
+### Steps
+
