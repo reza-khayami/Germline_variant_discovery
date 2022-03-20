@@ -59,6 +59,8 @@ GATK recommends using hg38 [more details](https://gatk.broadinstitute.org/hc/en-
 
 The latest version of hg38 reference genome can be downloaded from [NCBI (GCF/Refseq)](https://ftp.ncbi.nlm.nih.gov/genomes/refseq/vertebrate_mammalian/Homo_sapiens/all_assembly_versions/),[NCBI (GCA/Genebank)](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/), [ENSEMBL](https://ftp.ensembl.org/pub/current_fasta/homo_sapiens/dna/) or [UCSC](https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/).
 
+[This link](https://lh3.github.io/2017/11/13/which-human-reference-genome-to-use) also may provide useful information.
+
 There are some descrepancies between these genomes and NCBI version is recommended ([see the details here.](https://genome.ucsc.edu/FAQ/FAQgenes.html#ncbiRefseq)).
 Also, NCBI uses different chromosome naming than UCSC and ENSEMBL. The namings can be seen in ```*_assembly_report.txt``` file in the genome directory. For example the information on GRCh38.p13 is [here](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.39_GRCh38.p13/GCF_000001405.39_GRCh38.p13_assembly_report.txt).
 - The NCBI nomenclature is like this: NC_000001.11
