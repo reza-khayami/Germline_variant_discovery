@@ -57,7 +57,7 @@ GATK recommends using hg38 [more details](https://gatk.broadinstitute.org/hc/en-
 
 > We strongly recommend switching to GRCh38/hg38 if you are working with human sequence data. In addition to adding many alternate contigs, GRCh38 corrects thousands of small sequencing artifacts that cause false SNPs and indels to be called when using the GRCh37 assembly (b37/Hg19). It also includes synthetic centromeric sequence and updates non-nuclear genomic sequence.
 
-The latest version of hg38 reference genome can be downloaded from [NCBI](https://ftp.ncbi.nlm.nih.gov/genomes/refseq/vertebrate_mammalian/Homo_sapiens/all_assembly_versions/),[ENSEMBL](https://ftp.ensembl.org/pub/current_fasta/homo_sapiens/dna/) or [UCSC](https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/).
+The latest version of hg38 reference genome can be downloaded from [NCBI (GCF/Refseq)](https://ftp.ncbi.nlm.nih.gov/genomes/refseq/vertebrate_mammalian/Homo_sapiens/all_assembly_versions/),[NCBI (GCA/Genebank)](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/), [ENSEMBL](https://ftp.ensembl.org/pub/current_fasta/homo_sapiens/dna/) or [UCSC](https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/).
 
 There are some descrepancies between these genomes and NCBI version is recommended ([see the details here.](https://genome.ucsc.edu/FAQ/FAQgenes.html#ncbiRefseq)).
 Also, NCBI uses different chromosome naming than UCSC and ENSEMBL. The namings can be seen in ```*_assembly_report.txt``` file in the genome directory. For example the information on GRCh38.p13 is [here](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.39_GRCh38.p13/GCF_000001405.39_GRCh38.p13_assembly_report.txt).
