@@ -67,6 +67,7 @@ Also, NCBI uses different chromosome naming than UCSC and ENSEMBL. The namings c
 - The ensembl nomenclature is like this: 1
 - The UCSC nomenclature is like this: chr
 
+But if you use the `GRCh38_major_release_seqs_for_alignment_pipelines` from ncbi, it has UCSC nomenclature
 
 #### dbSNP
 The latest version of dbsnp can be downloaded from [here](https://ftp.ncbi.nih.gov/snp/latest_release/).
