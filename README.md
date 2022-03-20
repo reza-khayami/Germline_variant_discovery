@@ -53,6 +53,10 @@ resources_broad_hg38_v0_Axiom_Exome_Plus.genotypes.all_populations.poly.hg38.vcf
 ```
 
 #### Reference genome
+GATK recoomends using hg38 [more details](https://gatk.broadinstitute.org/hc/en-us/articles/360035890951-Human-genome-reference-builds-GRCh38-or-hg38-b37-hg19).
+
+"We strongly recommend switching to GRCh38/hg38 if you are working with human sequence data. In addition to adding many alternate contigs, GRCh38 corrects thousands of small sequencing artifacts that cause false SNPs and indels to be called when using the GRCh37 assembly (b37/Hg19). It also includes synthetic centromeric sequence and updates non-nuclear genomic sequence."
+
 The latest version of hg38 reference genome can be downloaded from [NCBI](https://ftp.ncbi.nlm.nih.gov/genomes/refseq/vertebrate_mammalian/Homo_sapiens/all_assembly_versions/),[ENSEMBL](https://ftp.ensembl.org/pub/current_fasta/homo_sapiens/dna/) or [UCSC](https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/).
 
 There are some descrepancies between these genomes and NCBI version is recommended ([see the details here.](https://genome.ucsc.edu/FAQ/FAQgenes.html#ncbiRefseq)).
