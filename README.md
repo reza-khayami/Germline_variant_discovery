@@ -63,7 +63,7 @@ The latest version of hg38 reference genome can be downloaded from [NCBI (GCF/Re
 
 There are some descrepancies between these genomes and NCBI version is recommended ([see the details here.](https://genome.ucsc.edu/FAQ/FAQgenes.html#ncbiRefseq)).
 Also, NCBI uses different chromosome naming than UCSC and ENSEMBL. The namings can be seen in ```*_assembly_report.txt``` file in the genome directory. For example the information on GRCh38.p13 is [here](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.39_GRCh38.p13/GCF_000001405.39_GRCh38.p13_assembly_report.txt).
-- The NCBI nomenclature is like this: NC_000001.11
+- The NCBI nomenclature is like this: NC_000001.11 for GCF and CM000663.2 for GCA
 - The ensembl nomenclature is like this: 1
 - The UCSC nomenclature is like this: chr
 
