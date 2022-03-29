@@ -1173,6 +1173,7 @@ PhyloP, GERP++, phastCons & SiPhy
 **Population Frequencies:**
 1000 Genomes, GnomAD, ExAC, and Exome Variant Server
 
+for more info [check this page](https://annovar.openbioinformatics.org/en/latest/user-guide/filter/)
 ### Steps
 Each of the mentioned softwares could be used for annotations. For more info read [this article](https://blog.goldenhelix.com/the-sate-of-variant-annotation-a-comparison-of-annovar-snpeff-and-vep/#:~:text=VEP%20and%20Annovar%20call%20this%20a%20stop%20gain%2C,signal%20for%20the%20intron%20to%20be%20spliced%20out.) although its outdated.
 
@@ -1227,16 +1228,73 @@ convert2annovar.pl -format vcf4 -includeinfo -withzyg example/ex2.vcf -outfile e
 The above command takes `ex2.vcf` as input file, and generate the `ex2.avinput` as output file. The 3 extra columns are zygosity status, genotype quality and read depth.
 
 
-#### Gene based annotation
+#### Download annotations
 Before working on gene-based annotation, a gene definition file and associated FASTA file must be downloaded into a directory if they are not already downloaded. Let's call this directory as `humandb/`
 
+##### Reference genome
 ```
 annotate_variation.pl -downdb -buildver hg38 -webfrom annovar refGene humandb/
 ```
 Technical Notes: The above command includes -webfrom annovar, because I already pre-built the FASTA file and included them in ANNOVAR distribution site. For other gene definition systems (such as GENCODE, CCDS) or for other species (such as mouse/fly/worm/yeast), the users needs to build the FASTA file themselves. See [this page](https://annovar.openbioinformatics.org/en/latest/user-guide/gene/) for more details.
 
-The gene-based annotation can be issued by the following command (by default, --geneanno -dbtype refGene is assumed):
+##### Download other databases
+
+Other databases could be download with the following code:
+
 ```
-annotate_variation.pl -out ex1 -build hg38 example/ex1.avinput humandb/
+perl annotate_variation.pl --downdb --webfrom annovar --buildver hg38 [Table Name in annovar] humandb/ 
+```
+A list of annovar databases is provided [here](https://annovar.openbioinformatics.org/en/latest/user-guide/download/)
+
+##### What databases to download?
+
+**For frequency of variants in whole-exome data:** 
+exac03: latest Exome Aggregation Consortium dataste with allele frequencies in ALL, AFR (African), AMR (Admixed American), EAS (East Asian), FIN (Finnish), NFE (Non-finnish European), OTH (other), SAS (South Asian).
+esp6500siv2: latest NHLBI-ESP project with 6500 exomes. Three separate key words are used for 3 population groupings: esp6500siv2_all, esp6500siv2_ea, esp6500siv2_aa.
+gnomad_exome: allele frequency in gnomAD database whole-exome sequence data on multiple populations.
+
+**For functional prediction of variants in whole-exome data:**
+dbnsfp: this dataset already includes SIFT, PolyPhen2 HDIV, PolyPhen2 HVAR, LRT, MutationTaster, MutationAssessor, FATHMM, MetaSVM, MetaLR, VEST, CADD, GERP++, DANN, fitCons, PhyloP and SiPhy scores, but ONLY on coding variants.
+
+**For functional prediction of splice variants:**
+dbscsnv11: dbscSNV version 1.1 for splice site prediction by AdaBoost and Random Forest, which score how likely that the variant may affect splicing
+spidex: deep learning based prediction of splice variants. Unlike dbscsnv11, these variants could be far away from canonical splice sites
+
+**For disease-specific variants:**
+clinvar: ClinVar database with separate columns (CLINSIG CLNDBN CLNACC CLNDSDB CLNDSDBID) for each variant (Please check the download page for the latest version, or read below for creating your own most updated version)
+cosmic: the latest COSMIC database with somatic mutations from cancer and the frequency of occurence in each subtype of cancer. For more updated cosmic, see instructions below on how to make them.
+icgc21: International Cancer Genome Consortium version 21 mutations.
+nci60: NCI-60 human tumor cell line panel exome sequencing allele frequency data
+
+**For variant identifiers:**
+
+snp: dbSNP version 142
+avsnp: an abbreviated version of dbSNP 142 with left-normalization by ANNOVAR developers. (Please check the download page for the latest version)
+
+**For chromosome coordinate of each cytogenetic band:**
+cytoBand
+
+```
+perl annotate_variation.pl --downdb --buildver hg38 cytoBand humandb/
+
 ```
 
+#### Annotate variants
+
+Annotate variants with the `table_annovar.pl` script, which allows custom selection of multiple annotation types in the same command with specified order of the output.
+
+Forexample:
+
+```
+perl table_annovar.pl <variant.vcf> humandb/--outfile final –buildver
+hg19 --protocol refGene,cytoBand,1000g2014oct_eur,1000g2014oct_afr,exac03,
+ljb26_all,clinvar_20140929,snp138 --operation g,r,f,f,f,f,f,f --vcfinput
+```
+
+`variant.vcf` refers to the name of the input VCF file.
+Please follow the `--protocol` argument by the exact names of the annotation sources, and follow the `--operation` argument by the annotation type: `g` for gene-based annotation, `r` for region-based annotation and `f` for filter-based annotation. The `--outfile` argument specifies the prefix of the name of your output file.
+
+
+#### ACMG Annotation
+
+Download and install InterVar based on the instructions [here](https://github.com/WGLab/InterVar)
