@@ -26,15 +26,23 @@
 ### Purpose
 The is the obligatory first phase that must precede all variant discovery. It involves pre-processing the raw sequence data (provided in FASTQ format) to produce analysis-ready BAM files. This involves alignment to a reference genome as well as some data cleanup operations to correct for technical biases and make the data suitable for analysis.
 
+#
+
 ### Input
 FASTQ format, Compressed or uncompressed, single end or paired end.
+
+#
 
 ### Output
 BAM file and its index file ready for variant discovery
 
+#
+
 ### Tools
 [BWA](https://github.com/lh3/bwa), [SAMtools](https://www.htslib.org/), [Bcftools](https://www.htslib.org/download/), [GATK](https://github.com/broadinstitute/gatk), [multiqc](https://multiqc.info/)
 A way to save space while working is to pipe the commands together. **Pipe tutorial [here](https://www.biostars.org/p/43677/)**.
+
+#
 
 ### Required data
 GATK needs a bunch of databases and has constructed several series of reference files stored in [GATK bundle](https://gatk.broadinstitute.org/hc/en-us/articles/360035890811-Resource-bundle) and [gatk best practices](https://console.cloud.google.com/storage/browser/gatk-best-practices/somatic-hg38;tab=objects?prefix=&forceOnObjectsSortingFiltering=false).
@@ -72,6 +80,8 @@ But if you use the `GRCh38_major_release_seqs_for_alignment_pipelines` from ncbi
 #### dbSNP
 The latest version of dbsnp can be downloaded from [here](https://ftp.ncbi.nih.gov/snp/latest_release/).
 GATk has its version of dbsnp in their bundle but its old.
+
+
 
 ## Notes<a name="Notes"></a>
 #### converting database nomenclature
@@ -172,6 +182,7 @@ Check the quality
 ```
 Fastqc yourfiles
 ```
+#
 
 #### 2. Trimming <a name="Trimming"></a>
 
@@ -218,6 +229,7 @@ Fastqc output_forward_paired files
 Multiqc yourfilesdirectory
 ```
 
+#
 #### 3. Alignment <a name="Alignment"></a>
 
 
@@ -282,6 +294,7 @@ bedtools bamtofastq -i ./chr1.sorted.bam \
 ```
 
 
+#
 #### 4. Lane merging (for multiple samples) <a name="Lane-merging-(optional)"></a>
 In case we generate multiple lane of sequencing or mutliple library. It is not practical to keep the data splited and all the reads should be merge into one massive file.
 Since we identified the reads in the BAM with read groups, even after the merging, we can still identify the origin of each read.
@@ -298,6 +311,7 @@ gatk MergeSamFiles \
 —-VALIDATION_STRINGENCY STRICT
 ```
 
+#
 #### 5. Cleaning up alignments <a name="Cleaning-up-alignments"></a>
 
 **5.1 Indel realignment (deprecated now)**<a name="Indel-realignment-(deprecated-now)"></a>
@@ -338,7 +352,7 @@ gatk CreateSequenceDictionary -R reference.fa
 samtools faidx reference.fa
 ```
 
-##### step 1: BaseRecalibrator
+##### 5.3.1 BaseRecalibrator
 ```
 gatk BaseRecalibrator \
    -I ${bam}.sorted.dup.bam \
@@ -351,7 +365,7 @@ gatk BaseRecalibrator \
    -ip 100 \
 ```
 
-##### step 2: ApplyBQSR
+##### 5.3.2 ApplyBQSR
 ```
 gatk ApplyBQSR \
   -R ${genome} \
@@ -361,7 +375,7 @@ gatk ApplyBQSR \
    -L ${intervals} \
    -ip 100 \
    ```
-
+#
 #### 6. Extract metrics <a name="Extract-metrics"></a>
 
 Once your whole bam is generated, it’s always a good thing to check the data again to see if everything makes sense.
@@ -433,15 +447,17 @@ Usually, we consider:
 ## Variant discovery  <a name="Variant-discovery"></a>
 ### Purpose
 The main variant caller in GATK is HaplotypeCaller which has two modes, one for single sample and another for cohort sample. It's quite easy to select mode, if your have only one sample, use single sample mode, if not, use cohort mode (Joint call). Above is the new pipeline from GATK developed for single sample which involves deep learning is variants qaulity control.
-
+#
 ### Input
 
 Analysis-Ready Reads (BAM format as well as its index, output of pre-processing)
 
+#
 ### Output
 
 A variant information file ([VCF](https://www.internationalgenome.org/wiki/Analysis/vcf4.0)) contains SNPs and Indels, along with its index
 
+#
 ### Tools
 
 GATK HaplotypeCaller
@@ -463,7 +479,7 @@ gatk HaplotypeCaller \
 -bamout ${bam}.relaligned.bam \
 --tmp-dir ${TMP}
 ```
-------------------------------------------------------------------------------------
+#
 **GVCF calling workflow**
 ```
 gatk HaplotypeCaller \
@@ -477,7 +493,7 @@ gatk HaplotypeCaller \
 If you have used GVCS calling, now you need to joint call the genotypes:
 
 
-
+#
 ##### joint genotyping on a singular sample
 
 ``` 
@@ -487,6 +503,7 @@ gatk GenotypeGVCFs \
    -O ${vcf}.vcf.gz
    
    ```
+#
 ##### joint genotyping on a cohort
 
 To gain more inforamtion on variant calling on a cohort check [this link](https://gatk.broadinstitute.org/hc/en-us/articles/360035890411?id=3893)
@@ -511,8 +528,7 @@ gatk GenotypeGVCFs \
    -O output.vcf.gz
 ```
 
----------------------------------------------------------------------------------------------
-### Notes 
+## Notes 
 Based on the FORMAT description, the genotype (GT) is the first information provided (separated by :).
 
 Three different values are available:
@@ -541,7 +557,7 @@ sort -k1,1nr | head
 
 ```
 
-
+#
 ## Callset refinement <a name="Callset-refinement"></a>
 ### Purpose
 ## 1. Variant Filteration
@@ -573,12 +589,15 @@ If a “gold standard” dataset for SNPs is available, that can be used as a ve
 
 for more info check [GATK](https://gatk.broadinstitute.org/hc/en-us/articles/360035531432-Genotype-Refinement-workflow-for-germline-short-variants)
 
+#
 ### Input
 raw variant information file (VCF) along with its index
 
+#
 ### Output
 Analysis ready variant information file (VCF) along with its index
 
+#
 ### Tools
 filteration:  
 GATK [SelectVariants](https://gatk.broadinstitute.org/hc/en-us/articles/360037055952-SelectVariants)  
@@ -614,6 +633,7 @@ gatk SelectVariants \
 
 ```
 
+#
 ### 2. Vairant Filteration
 - [A] Hard Filtering  
 - [B] VQSR
@@ -801,7 +821,7 @@ E = makeScatterPlotWithMarginalDensity(SNP.giab,
 ```
 
 
-
+#
 #### [B] VQSR
 ##### B.1 Calculate VQSLOD tranches
 ```
@@ -881,6 +901,7 @@ gatk --java-options "-Xmx5g -Xms5g" \
 
 **99.9% is the recommended default VQSLOD cutoff for SNPs in human genomic analysis.**
 
+#
 #### [C] CNN
 Annotate a VCF with scores from a Convolutional Neural Network (CNN). This tool streams variants and their reference context to a python program, which evaluates a pre-trained neural network on each variant. The default models were trained on single-sample VCFs. The default model should not be used on VCFs with annotations from joint call-sets. The neural network performs convolutions over the reference sequence surrounding the variant and combines those features with a multilayer perceptron on the variant annotations. 2D models convolve over aligned reads as well as the reference sequence, and variant annotations. 2D models require a SAM/BAM file as input and for the --tensor-type argument to be set to a tensor type which requires reads, as in the example below. Pre-trained 1D and 2D models are included in the distribution. It is possible to train your own models with the tools: CNNVariantWriteTensors and CNNVariantTrain. CNNVariantTrain will create a json architecture file and an hd5 weights file, which you can use with this tool. The advanced argument `info-annotation-keys` is available for models trained with different sets info field annotations. In order to do this you must first train your own model with the tools CNNVariantWriteTensors and CNNVariantTrain. Otherwise, providing this argument with anything but the standard set of annotations will result in an error.
 
@@ -922,6 +943,7 @@ gatk FilterVariantTranches \
 
 ```
 
+#
 ### 3. Genotype Refinement
 
 While every study can benefit from increased data accuracy, this workflow is especially useful for analyses that are concerned with how many copies of each variant an individual has (e.g. in the case of loss of function) or with the transmission (or de novo origin) of a variant in a family.
@@ -993,18 +1015,22 @@ Filtering is about balancing sensitivity and precision for research aims. ​For
 
 visit [GATK](https://gatk.broadinstitute.org/hc/en-us/articles/360035531572) for more info.
 
+#
 ### Input
 Variant information file (VCF) along with its index
 
+#
 ### Output
 Metrics table
 
+#
 ### Tools
 [CollectVariantCallingMetrics](https://gatk.broadinstitute.org/hc/en-us/articles/360036363592-CollectVariantCallingMetrics-Picard-#--OUTPUT)  
 [VariantEval](https://gatk.broadinstitute.org/hc/en-us/articles/360037224592-VariantEval-BETA-)  
 [GenotypeConcordance](https://gatk.broadinstitute.org/hc/en-us/articles/360037425091-GenotypeConcordance-Picard-)  
 [Hap.py](https://github.com/Illumina/hap.py)  
 
+---
 ### Steps
 
 ### 1. Using hap.py
@@ -1096,6 +1122,7 @@ hap.py hap.py/example/happy/PG_NA12878_hg38-chr21.vcf.gz \
 #### 1.3 Visualize
 Please use the instructions given in [this page](https://github.com/Illumina/happyR).
 
+#
 ### 2. Using GATK
 #### 2.1. Compare callset against a known population callset
 ```
@@ -1148,16 +1175,19 @@ This produces a file containing a table for each of the evaluation modules, e.g.
 
 "The ultimate goal of the functional annotation process is to assign biologically relevant information to predicted polypeptides, and to the features they derive from ( e.g. gene, mRNA)." [ref](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5850084/)
 
+#
 ### Input
 Filtered variant information file (VCF) along with its index.
 
-
+#
 ### Output
 A table with annotations
 
+#
 ### Tools
 [Snpeff](pcingola.github.io/SnpEff), [Vep](https://grch37.ensembl.org/info/docs/tools/vep/index.html), [Annovar](https://annovar.openbioinformatics.org/en/latest/)
 
+#
 ### Required data
 A set of databases such as:
 
@@ -1174,9 +1204,12 @@ PhyloP, GERP++, phastCons & SiPhy
 1000 Genomes, GnomAD, ExAC, and Exome Variant Server
 
 for more info [check this page](https://annovar.openbioinformatics.org/en/latest/user-guide/filter/)
+
+---
 ### Steps
 Each of the mentioned softwares could be used for annotations. For more info read [this article](https://blog.goldenhelix.com/the-sate-of-variant-annotation-a-comparison-of-annovar-snpeff-and-vep/#:~:text=VEP%20and%20Annovar%20call%20this%20a%20stop%20gain%2C,signal%20for%20the%20intron%20to%20be%20spliced%20out.) although its outdated.
 
+#
 #### SnpEff
 Note: this app uses databases with Ensembl chromosome name annotations. Therefore, keep in mind that you should change your chromosome names to Ensembl's version.
 
@@ -1210,16 +1243,19 @@ time java -jar ~/snpEff/SnpSift.jar vcfCheck  ${vcf}.CNN.filtered.dbsnp.Ensembl.
 time java -jar ~/snpEff/SnpSift.jar gwasCat -db ${gwas} ${vcf}.CNN.filtered.dbsnp.Ensembl.snpEff.dbnsfp.X.vcf > ${vcf}.CNN.filtered.dbsnp.Ensembl.snpEff.dbnsfp.gwas.X.vcf
 ```
 
+---
 #### Annovar
 Before using this annotation tool, first you should prepare your data:
 
-##### Normalization
+#
+##### 1. Normalization
 ```
 bcftools norm -m-both -o ex1.step1.vcf ex1.vcf.gz
 
 bcftools norm -f human_g1k_v37.fasta -o ex1.step2.vcf ex1.step1.vcf
 ```
-#### Format Conversion
+#
+#### 2. Format Conversion
 
 ```
 convert2annovar.pl -format vcf4 -includeinfo -withzyg example/ex2.vcf -outfile ex2.avinput
@@ -1227,9 +1263,10 @@ convert2annovar.pl -format vcf4 -includeinfo -withzyg example/ex2.vcf -outfile e
 ```
 The above command takes `ex2.vcf` as input file, and generate the `ex2.avinput` as output file. The 3 extra columns are zygosity status, genotype quality and read depth.
 
-
-#### Download annotations
+#
+#### 3. Download annotations
 Before working on gene-based annotation, a gene definition file and associated FASTA file must be downloaded into a directory if they are not already downloaded. Let's call this directory as `humandb/`
+
 
 ##### Reference genome
 ```
@@ -1279,7 +1316,8 @@ perl annotate_variation.pl --downdb --buildver hg38 cytoBand humandb/
 
 ```
 
-#### Annotate variants
+#
+#### 4. Annotate variants
 
 Annotate variants with the `table_annovar.pl` script, which allows custom selection of multiple annotation types in the same command with specified order of the output.
 
@@ -1294,7 +1332,7 @@ ljb26_all,clinvar_20140929,snp138 --operation g,r,f,f,f,f,f,f --vcfinput
 `variant.vcf` refers to the name of the input VCF file.
 Please follow the `--protocol` argument by the exact names of the annotation sources, and follow the `--operation` argument by the annotation type: `g` for gene-based annotation, `r` for region-based annotation and `f` for filter-based annotation. The `--outfile` argument specifies the prefix of the name of your output file.
 
-
-#### ACMG Annotation
+#
+#### 5. ACMG Annotation
 
 Download and install InterVar based on the instructions [here](https://github.com/WGLab/InterVar)
