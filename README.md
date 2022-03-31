@@ -1346,4 +1346,4 @@ Please follow the `--protocol` argument by the exact names of the annotation sou
 #
 #### 5. ACMG Annotation
 
-Download and install InterVar based on the instructions [here](https://github.com/WGLab/InterVar)
+Download and install InterVar based on the instructions [here](https://github.com/WGLab/InterVar) and [here](https://github.com/WGLab/InterVar/blob/master/docs/user-guide/manual.md)
