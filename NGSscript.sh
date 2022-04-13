@@ -1,7 +1,38 @@
-#!/bin/bash
+#!/bin/bash -i
+
+#place this file in /NGS/RK/
+
+#uncomment and add this to your aliases
+#echo "alias gatk='/home/Downloads/gatk-4.2.6.0/gatk'" >> ~/.bash_aliases
+
+
+# Expand aliases defined in the shell ~/.bashrc
+shopt -s expand_aliases
+
+
+#installation
+#mamba
+#curl -L https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh -o ~/Downloads/Mambaforge-Linux-x86_64.sh
+#bash ~/Downloads/Mambaforge-Linux-x86_64.sh
+#gatk
+#wget -P ~/Downloads/ https://github.com/broadinstitute/gatk/releases/download/4.2.6.0/gatk-4.2.6.0.zip
+#unzip ~/Downloads/gatk-4.2.6.0.zip
+#mamba env create -n gatk -f ~/Downloads/gatkcondaenv.yml
+#source deactivate
+#mamba install bwa samtools bcftools trimmomatic fastqc multiqc
+
+
+
+
+
 
 #read -p "Enter patients name: " sample
+#Enter sample name
 sample="10-388-MAKH"
+
+
+
+
 fastq1="${sample}_1.fastq.gz"
 fastq2="${sample}_2.fastq.gz"
 
@@ -9,6 +40,8 @@ echo making directories
 mkdir -p Results/${sample}/BAM
 mkdir -p Results/${sample}/calls
 mkdir -p Results/${sample}/annotate
+mkdir -p Results/${sample}/qc
+mkdir -p Results/${sample}/trimmed
 
 #qc
 qc="Results/${sample}/qc"
@@ -39,13 +72,15 @@ intervals="databases/Gencode/list.interval_list"
 TMP="tmp"
 IP=10
 
+
 #PATHs
-GATK="/home/myassi/RK/Downloads/gatk-4.2.6.0/gatk-package-4.2.6.0-local.jar"
-export PATH="/media/myassi/01CD77B76BF0B4F0/NGS/RK/annovar.latest/annovar":$PATH
-export PATH="/media/myassi/01CD77B76BF0B4F0/NGS/RK/InterVar-master":$PATH
+#Define paths
+GATK="~/Downloads/gatk-4.2.6.0/gatk-package-4.2.6.0-local.jar"
+export PATH="~/Downloads/gatk-4.2.6.0/":$PATH
+export PATH="./annovar.latest/annovar":$PATH
+export PATH="./InterVar-master":$PATH
 
 source ~/.bashrc
-source activate gatk
 
       echo
       echo "##########################################################################"
@@ -56,8 +91,74 @@ source activate gatk
       echo
 	  
 echo "gatk  4.2.6.0"
-conda list -n gatk | grep -E bwa\|fastqc\|multiqc\|samtools\|bcftools
+conda list -n gatk | grep -E bwa\|fastqc\|multiqc\|samtools\|bcftools\|trimmomatic
 
+	  echo
+      echo "##########################################################################"
+      echo "#####################                                #####################"
+      echo "#####################             Fastqc             #####################"
+      echo "#####################                                #####################"
+      echo "##########################################################################"
+      echo
+	  
+fastqc \
+-o ${qc} \
+ Samples/${fastq1} \
+ Samples/${fastq2}
+
+ multiqc ${qc} -f -o ${qc}
+ google-chrome-stable ${qc}/multiqc_report.html
+
+ read -p "Do you want to start Trimmomatic? (y/n)" -n 1 -r
+ echo    # (optional) move to a new line
+ if [[ ! $REPLY =~ ^[Yy]$ ]]
+ then
+     exit 1
+ fi
+ 
+ 	  echo
+      echo "##########################################################################"
+      echo "#####################                                #####################"
+      echo "#####################          Trimmomatic           #####################"
+      echo "#####################                                #####################"
+      echo "##########################################################################"
+      echo
+
+ trimmomatic PE \
+Samples/${fastq1} Samples/${fastq2} \
+ ${paired1} \
+ ${unpaired1} \
+ ${paired2} \
+ ${unpaired1} \
+ ILLUMINACLIP:~/mambaforge/share/trimmomatic-0.39-2/adapters/TruSeq3-PE-2.fa:2:30:10:2:keepBothReads LEADING:15 TRAILING:15 MINLEN:32
+
+	  echo
+      echo "##########################################################################"
+      echo "#####################                                #####################"
+      echo "#####################             Fastqc             #####################"
+      echo "#####################                                #####################"
+      echo "##########################################################################"
+      echo
+ #QC2 4m
+ fastqc \
+ -o ${qc} \
+ ${paired1} \
+ ${paired2}
+
+ multiqc ${qc} -f -o ${qc}
+
+ [ -f "${paired1}" -a -f "${paired2}" ] && echo "Preprocessing was done succesfuly."
+
+
+google-chrome-stable ${qc}/multiqc_report.html
+
+ read -p "Do you want to start Alignment? (y/n)" -n 1 -r
+ echo    # (optional) move to a new line
+ if [[ ! $REPLY =~ ^[Yy]$ ]]
+ then
+     exit 1
+ fi
+ 
       echo
       echo "##########################################################################"
       echo "#####################                                #####################"
@@ -191,6 +292,7 @@ conda list -n gatk | grep -E bwa\|fastqc\|multiqc\|samtools\|bcftools
       echo "#####################                                #####################"
       echo "##########################################################################"
       echo
+source activate gatk
 
    #CNN 84m
    time java -jar $GATK CNNScoreVariants \
@@ -234,7 +336,7 @@ conda list -n gatk | grep -E bwa\|fastqc\|multiqc\|samtools\|bcftools
       echo "#####################                                #####################"
       echo "##########################################################################"
       echo
-
+source deactivate
       java -jar $GATK VariantFiltration \
       -R ${genome} \
       -V ${vcf}/${sample}.CNN.filtered.vcf \
