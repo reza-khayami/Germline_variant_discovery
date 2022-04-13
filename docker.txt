@@ -1,0 +1,116 @@
+#change chrs
+
+docker run -v /j/ngs/:/data -it --rm biocontainers/bcftools:v1.9-1-deb_cv1
+gzip -d /data/RK/databases/Axiom/resources_broad_hg38_v0_Axiom_Exome_Plus.genotypes.all_populations.poly.hg38.vcf.gz
+bcftools annotate --rename-chrs /data/RK/ucsctoncbi.tsv /data/RK/databases/Axiom/resources_broad_hg38_v0_Axiom_Exome_Plus.genotypes.all_populations.poly.hg38.vcf > /data/RK/databases/Axiom/NCBI_resources_broad_hg38_v0_Axiom_Exome_Plus.genotypes.all_populations.poly.hg38.vcf
+
+#make vcf.gz
+
+docker run -ti -v /j/ngs/:/data -it --rm ljishen/samtools:latest bgzip sh
+make install htslib-1.3.1
+exit
+docker run -ti -v %cd%:/opt/ ljishen/samtools:latest sh
+bgzip -c /opt/NCBI_resources_broad_hg38_v0_Axiom_Exome_Plus.genotypes.all_populations.poly.hg38.vcf > /opt/NCBI_resources_broad_hg38_v0_Axiom_Exome_Plus.genotypes.all_populations.poly.hg38.vcf.gz
+tabix -f -p vcf /opt/NCBI_resources_broad_hg38_v0_Axiom_Exome_Plus.genotypes.all_populations.poly.hg38.vcf.gz
+
+
+#VQSR
+docker run -v /j/NGS/:/gatk/data -it broadinstitute/gatk
+
+gatk VariantRecalibrator \
+    --java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true'\
+    -V /gatk/data/RK/Analysis/Variants/NA12878.hc.INDEL.GATK.vcf \
+    -R  /gatk/data/RK/databases/GRCh38_index/genome_assemblies_genome_fasta/ncbi-genomes-2021-11-27/GCF_000001405.39_GRCh38.p13_genomic.fna \
+    --trust-all-polymorphic \
+    -an FS -an ReadPosRankSum -an MQRankSum -an QD -an SOR \
+    --mode INDEL \
+    --max-gaussians 4 \
+    --resource:mills,known=false,training=true,truth=true,prior=12 /gatk/data/RK/databases/mills/NCBI_Mills_and_1000G_gold_standard.indels.hg38.vcf \
+    --resource:axiomPoly,known=false,training=true,truth=false,prior=10 /gatk/data/RK/databases/Axiom/resources_broad_hg38_v0_Axiom_Exome_Plus.genotypes.all_populations.poly.hg38.vcf.gz\
+    --resource:dbsnp,known=true,training=false,truth=false,prior=2 /gatk/data/RK/databases/dbsnp/GCF_000001405.39.gz \
+    -O /gatk/data/RK/Analysis/Variants/GATK/VQSR/Indels/cohort_indels.recal \
+    --tranches-file /gatk/data/RK/Analysis/Variants/GATK/VQSR/Indels/cohort_indels.tranches \
+
+
+
+
+
+1000G
+
+
+
+gatk ApplyVQSR \
+    -V /gatk/data/RK/Analysis/Variants/GATK/VQSR/SNPs/cohort_indels.recal \
+    --recal-file ${snps_recalibration} \
+    --tranches-file ${snps_tranches} \
+    --truth-sensitivity-filter-level 99.7 \
+    --create-output-variant-index true \
+    -mode SNP \
+    -O snp.recalibrated.vcf.gz \
+
+
+
+gatk FilterVariantTranches \
+--java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true' \
+-V /gatk/data/RK/Analysis/Variants/Fatemeh-Rahdari/CNN_with_intervals/Fatemeh-Rahdari.CNN.X.vcf \
+-O /gatk/data/RK/Fatemeh-Rahdari.CNN.X.GIAB.vcf  \
+--info-key CNN_2D \
+-resource /gatk/data/RK/databases/1000G_phase1_SNP/NCBI_1000G_phase1.snps.high_confidence.hg38.vcf.gz \
+-resource /gatk/data/RK/databases/GIAB/NCBI_HG001_GRCh38_1_22_v4.2.1_benchmark.vcf.gz \
+-resource /gatk/data/RK/databases/Gnomad/NCBI_af-only-gnomad.hg38.vcf.gz \
+-resource /gatk/data/RK/databases/1000Gomni2.5/NCBI_1000G_omni2.5.hg38.vcf.gz \
+-resource /gatk/data/RK/databases/Hapmap3.3/NCBI_hapmap_3.3.hg38.vcf \
+-resource /gatk/data/RK/databases/mills/NCBI_Mills_and_1000G_gold_standard.indels.hg38.vcf.gz \
+-resource /gatk/data/RK/databases/dbsnp/GCF_000001405.39.gz \
+--tmp-dir /gatk/data/RK/tmp \
+-L /gatk/data/RK/databases/Gencode/list.interval_list \
+   -ip 100 \
+
+
+
+
+
+
+gatk FilterVariantTranches \
+--java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true' \
+-V /gatk/data/RK/Analysis/Variants/Fatemeh-Rahdari/CNN_with_intervals/Fatemeh-Rahdari.CNN.X.vcf \
+-O /gatk/data/RK/Fatemeh-Rahdari.CNN.X.GIAB.vcf  \
+--info-key CNN_2D \
+-resource /gatk/data/RK/databases/1000G_phase1_SNP/NCBI_1000G_phase1.snps.high_confidence.hg38.vcf.gz \
+-resource /gatk/data/RK/databases/mills/NCBI_Mills_and_1000G_gold_standard.indels.hg38.vcf.gz \
+--tmp-dir /gatk/data/RK/tmp \
+-L /gatk/data/RK/databases/Gencode/list.interval_list \
+   -ip 100 \
+
+
+gatk FilterVariantTranches \
+--java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true' \
+-V /gatk/data/RK/Analysis/Variants/Fatemeh-Rahdari/CNN_with_intervals/Fatemeh-Rahdari.CNN.X.vcf \
+-O /gatk/data/RK/Fatemeh-Rahdari.CNN.X.GIAB.vcf  \
+--info-key CNN_2D \
+-resource /gatk/data/RK/databases/GIAB/NCBI_HG001_GRCh38_1_22_v4.2.1_benchmark.vcf.gz \
+--tmp-dir /gatk/data/RK/tmp \
+-L /gatk/data/RK/databases/Gencode/list.interval_list \
+   -ip 100 \
+
+
+
+gatk FilterVariantTranches \
+--java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true' \
+-V /gatk/data/RK/Fatemeh-Rahdari.CNN.X.GIAB.vcf \
+-O /gatk/data/RK/Fatemeh-Rahdari.CNN.X.GIAB2.vcf  \
+--info-key CNN_2D \
+-resource /gatk/data/RK/databases/Gnomad/NCBI_af-only-gnomad.hg38.vcf.gz \
+-resource /gatk/data/RK/databases/mills/NCBI_Mills_and_1000G_gold_standard.indels.hg38.vcf.gz \
+--tmp-dir /gatk/data/RK/tmp \
+-L /gatk/data/RK/databases/Gencode/list.interval_list \
+   -ip 100 \
+Fatemeh-Rahdari.CNN.X.GIAB.vcf
+
+gatk LeftAlignAndTrimVariants \
+-V /gatk/data/RK/Analysis/Variants/Fatemeh-Rahdari/CNN_with_intervals/Fatemeh-Rahdari.CNN.X.vcf \
+-O /gatk/data/RK/Fatemeh-Rahdari.CNN.X.GIAB.vcf  \
+-R /gatk/data/RK/databases/GRCh38_index/genome_assemblies_genome_fasta/ncbi-genomes-2021-11-27/GCF_000001405.39_GRCh38.p13_genomic.fna \
+--tmp-dir /gatk/data/RK/tmp \
+-L /gatk/data/RK/databases/Gencode/list.interval_list \
+   -ip 100 \

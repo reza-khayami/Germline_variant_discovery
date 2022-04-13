@@ -1,0 +1,579 @@
+#######################
+### Index Reference ####
+#######################
+
+bwa index -p prefix reference.fa
+
+##############################################
+### Creating the FASTA dictionary and index ####
+##############################################
+
+gatk CreateSequenceDictionary -R ref.fasta
+samtools faidx ref.fasta
+
+
+
+#######################
+### Qualilty Control ####
+#######################
+
+fastqc \
+ /media/myassi/01CD77B76BF0B4F0/NGS/RK/FastQ/SRR098401_1.fastq.gz \
+ /media/myassi/01CD77B76BF0B4F0/NGS/RK/FastQ/SRR098401_2.fastq.gz
+
+mkdir /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/QC/SRR098401
+
+mv /media/myassi/01CD77B76BF0B4F0/NGS/RK/FastQ/*fastqc* /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/QC/SRR098401
+
+###############
+### Trimming ####
+###############
+java -jar ~/RK/bin/trimmomatic-0.39.jar PE \
+/media/myassi/01CD77B76BF0B4F0/NGS/RK/FastQ/SRR098401_1.fastq.gz /media/myassi/01CD77B76BF0B4F0/NGS/RK/FastQ/SRR098401_2.fastq.gz \
+/media/myassi/01CD77B76BF0B4F0/NGS/RK/FastQ/Trim/SRR098401_1_paired.fq.gz \
+/media/myassi/01CD77B76BF0B4F0/NGS/RK/FastQ/Trim/SRR098401_1_unpaired.fq.gz \
+/media/myassi/01CD77B76BF0B4F0/NGS/RK/FastQ/Trim/SRR098401_2_paired.fq.gz \
+/media/myassi/01CD77B76BF0B4F0/NGS/RK/FastQ/Trim/SRR098401_2_unpaired.fq.gz \
+ ILLUMINACLIP:/home/myassi/RK/Downloads/Trimmomatic-0.39/adapters/TruSeq3-PE.fa:2:30:10:2:keepBothReads TRAILING:15 MINLEN:32 \
+-trimlog /media/myassi/01CD77B76BF0B4F0/NGS/RK/FastQ/Trim/log.txt \
+ 2> /media/myassi/01CD77B76BF0B4F0/NGS/RK/FastQ/chr1.trim.out
+
+
+#######################
+### Qualilty Control ####
+#######################
+
+
+fastqc /media/myassi/01CD77B76BF0B4F0/NGS/RK/FastQ/SRR098401_1_paired.fq.gz \
+> /media/myassi/01CD77B76BF0B4F0/NGS/RK/FastQ/SRR098401_2_paired.fq.gz 
+
+mv /media/myassi/01CD77B76BF0B4F0/NGS/RK/FastQ/*fastqc* /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/QC/SRR098401
+
+multiqc /media/myassi/01CD77B76BF0B4F0/NGS/RK
+mv /media/myassi/01CD77B76BF0B4F0/NGS/RK/*multiqc* /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/QC/SRR098401
+
+#######################
+### Alignment and Sorting ####
+#######################
+
+#piped 
+bwa mem -M -t 2 \
+  -R '@RG\tID:NA12878\tSM:NA12878\tLB:NA12878\tPU:runNA12878_1\tCN:Broad Institute\tPL:ILLUMINA' \
+  /media/myassi/01CD77B76BF0B4F0/NGS/RK/GRCh38_index/genome_assemblies_genome_fasta/ncbi-genomes-2021-11-27/GCF_000001405.39_GRCh38.p13_genomic.fna \
+  /media/myassi/01CD77B76BF0B4F0/NGS/RK/FastQ/SRR098401_1_paired.fq.gz \
+  /media/myassi/01CD77B76BF0B4F0/NGS/RK/FastQ/SRR098401_2_paired.fq.gz \
+  | java -Xmx2G -jar ~/RK/bin/picard.jar SortSam \
+  -I /dev/stdin \
+  -O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.bam \
+  -SO coordinate \
+  --CREATE_INDEX true --MAX_RECORDS_IN_RAM 500000
+
+#OR seperated
+
+bwa mem -M -t 2 \
+  -R '@RG\tID:NA12878\tSM:NA12878\tLB:NA12878\tPU:runNA12878_1\tCN:Broad Institute\tPL:ILLUMINA' \
+  /media/myassi/01CD77B76BF0B4F0/NGS/RK/GRCh38_index/genome_assemblies_genome_fasta/ncbi-genomes-2021-11-27/GCF_000001405.39_GRCh38.p13_genomic.fna \
+  /media/myassi/01CD77B76BF0B4F0/NGS/RK/FastQ/SRR098401_1_paired.fq.gz \
+  /media/myassi/01CD77B76BF0B4F0/NGS/RK/FastQ/SRR098401_2_paired.fq.gz \
+  > /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/SAM/NA12878.sam
+
+
+   java -Xmx2G -jar ~/RK/bin/picard.jar SortSam \
+  --TMP_DIR /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/SAM/tmp \
+  -I /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/SAM/NA12878.sam \
+  -O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.bam \
+  -SO coordinate \
+  --CREATE_INDEX true --MAX_RECORDS_IN_RAM 500000
+
+#######################
+### Merge ####
+#######################
+java -jar picard.jar MergeSamFiles \
+ASSUME_SORTED=false \
+CREATE_INDEX=true \                 
+[INPUT= <input.bam>]  \
+MERGE_SEQUENCE_DICTIONARIES=false \
+OUTPUT= <output_path> \
+SORT_ORDER=coordinate \
+USE_THREADING=true \
+VALIDATION_STRINGENCY=STRICT
+ 
+
+
+#######################
+### Mark Duplicates ####
+#######################
+
+
+java -Xmx2G -jar ~/RK/bin/picard.jar MarkDuplicates \
+  --REMOVE_DUPLICATES false --CREATE_INDEX true \
+  -I /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.bam \
+  -O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.dup.bam \
+  -M /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.dup.metrics \
+  --TMP_DIR /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/tmp 
+
+
+
+#########################################
+### Base Quality Scores Recalibration ####
+#########################################
+
+gatk BaseRecalibrator \
+   -I /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.dup.bam \
+   -R /media/myassi/01CD77B76BF0B4F0/NGS/RK/GRCh38_index/genome_assemblies_genome_fasta/ncbi-genomes-2021-11-27/GCF_000001405.39_GRCh38.p13_genomic.fna \
+   --known-sites /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/dbsnp/GCF_000001405.39.gz \
+   --known-sites /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/millis/NCBI_Mills_and_1000G_gold_standard.indels.hg38.vcf \
+   --known-sites /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/known_indels/NCBI_Homo_sapiens_assembly38.known_indels.vcf\
+   -O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.dup.recalibration_report.table
+
+
+gatk ApplyBQSR \
+  -R /media/myassi/01CD77B76BF0B4F0/NGS/RK/GRCh38_index/genome_assemblies_genome_fasta/ncbi-genomes-2021-11-27/GCF_000001405.39_GRCh38.p13_genomic.fna \
+  -bqsr /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.dup.recalibration_report.table \
+  -I /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.dup.bam \
+  -O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.dup.recal.bam 
+
+
+################################
+### Alignment Quality Control ####
+################################
+
+############################
+### AQC1. Compute coverage ####
+############################
+
+gatk DepthOfCoverage \
+  --omit-depth-output-at-each-base \
+  --summary-coverage-threshold 10 \
+  --summary-coverage-threshold 25 \
+  --summary-coverage-threshold 50 \
+  --summary-coverage-threshold 100 \
+  --start 1 --stop 500 --nBins 499  \
+  -R /media/myassi/01CD77B76BF0B4F0/NGS/RK/GRCh38_index/genome_assemblies_genome_fasta/ncbi-genomes-2021-11-27/GCF_000001405.39_GRCh38.p13_genomic.fna \
+  -O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.dup.recal.coverage \
+  -I /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.dup.recal.bam \
+  -L NC_000001.11:17373505-17773505
+
+
+less -S /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.dup.recal.coverage.sample_interval_summary
+
+
+
+#######################
+### AQC2. Insert size ####
+#######################
+
+
+gatk CollectInsertSizeMetrics \
+  -R /media/myassi/01CD77B76BF0B4F0/NGS/RK/GRCh38_index/genome_assemblies_genome_fasta/ncbi-genomes-2021-11-27/GCF_000001405.39_GRCh38.p13_genomic.fna \
+  -I  /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.dup.recal.bam \
+  -O  /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.dup.recal.metric.insertSize.tsv \
+  -H  /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.dup.recal.metric.insertSize.histo.pdf \
+  --METRIC_ACCUMULATION_LEVEL LIBRARY
+
+head -9 /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.dup.recal.metric.insertSize.tsv | tail -3 | cut -f6,7
+
+
+#higher insert lower sd is good
+
+
+#############################
+### AQC3. Alignment metrics ####
+#############################
+
+gatk CollectAlignmentSummaryMetrics \
+  -R /media/myassi/01CD77B76BF0B4F0/NGS/RK/GRCh38_index/genome_assemblies_genome_fasta/ncbi-genomes-2021-11-27/GCF_000001405.39_GRCh38.p13_genomic.fna \
+  -I  /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.dup.recal.bam \
+  -O  /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/Alignment/NA12878.sorted.dup.recal.metric.alignment.tsv \
+  --METRIC_ACCUMULATION_LEVEL LIBRARY
+
+
+
+head -10  /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/Alignment/NA12878.sorted.dup.recal.metric.alignment.tsv | tail -4 | cut -f7
+
+# A good alignment if > 90%
+
+
+
+
+
+#####################
+### Variant Calling ####
+#####################
+
+gatk HaplotypeCaller \
+-R /media/myassi/01CD77B76BF0B4F0/NGS/RK/GRCh38_index/genome_assemblies_genome_fasta/ncbi-genomes-2021-11-27/GCF_000001405.39_GRCh38.p13_genomic.fna \
+-I /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.dup.recal.bam \
+-O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.vcf \
+-bamout /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/NA12878.sorted.dup.recal.realigned.bam \
+--tmp-dir /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/BAM/tmp 
+
+#########################
+### Filter the Variants ####
+#########################
+
+#There are three ways: Hard filtering, VQSR, CNN
+
+
+###############################
+### 1.1 Hard Filtering canada ####
+###############################
+gatk VariantFiltration \
+-R /media/myassi/01CD77B76BF0B4F0/NGS/RK/GRCh38_index/genome_assemblies_genome_fasta/ncbi-genomes-2021-11-27/GCF_000001405.39_GRCh38.p13_genomic.fna \
+-V /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.vcf \
+-O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.filter.canada.vcf \
+-filter "QD < 2.0" \
+-filter "FS > 200.0" \
+-filter "MQ < 40.0" \
+--filter-name QDFilter \
+--filter-name FSFilter \
+--filter-name MQFilter
+
+
+###############################
+### 1.2 Hard Filtering GATK ####
+###############################
+
+###Split SNPs and INDELS###
+
+gatk SelectVariants \
+    -V /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.vcf \
+    -select-type SNP \
+    -O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.vcf
+
+
+gatk SelectVariants \
+   -V /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.vcf \
+    -select-type INDEL \
+   -O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.INDEL.GATK.vcf
+
+###Recommended Hard filters###
+
+##SNP##
+gatk VariantFiltration \
+    -V snps.vcf.gz \
+    -filter "QD < 2.0" --filter-name "QD2" \
+    -filter "QUAL < 30.0" --filter-name "QUAL30" \
+    -filter "SOR > 3.0" --filter-name "SOR3" \
+    -filter "FS > 60.0" --filter-name "FS60" \
+    -filter "MQ < 40.0" --filter-name "MQ40" \
+    -filter "MQRankSum < -12.5" --filter-name "MQRankSum-12.5" \
+    -filter "ReadPosRankSum < -8.0" --filter-name "ReadPosRankSum-8" \
+    -O snps_filtered.vcf.gz
+
+##INDEL##
+
+gatk VariantFiltration \ 
+    -V indels.vcf.gz \ 
+    -filter "QD < 2.0" --filter-name "QD2" \
+    -filter "QUAL < 30.0" --filter-name "QUAL30" \
+    -filter "FS > 200.0" --filter-name "FS200" \
+    -filter "ReadPosRankSum < -20.0" --filter-name "ReadPosRankSum-20" \ 
+    -O indels_filtered.vcf.gz
+
+
+##############################################
+#We Can plot the features to change the filters. This has multiple steps:
+
+### 1.2.1 Annotate intersecting true positives with VariantAnnotator ###
+
+#Both truth callset and your vcf should have the same chromosome names, if the dont have the same names do the following
+
+gzip -d file.vcf.gz
+
+bcftools annotate --rename-chrs /media/myassi/01CD77B76BF0B4F0/NGS/RK/hg38convertchrtoncbi.tsv /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/GIAB/HG001_GRCh38_1_22_v4.2.1_benchmark.vcf > /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/GIAB/NCBI_HG001_GRCh38_1_22_v4.2.1_benchmark.vcf
+
+###zip the new vcf and index it
+
+bgzip -c /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/GIAB/NCBI_HG001_GRCh38_1_22_v4.2.1_benchmark.vcf > /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/GIAB/NCBI_HG001_GRCh38_1_22_v4.2.1_benchmark.vcf.gz
+tabix -f -p vcf /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/GIAB/NCBI_HG001_GRCh38_1_22_v4.2.1_benchmark.vcf.gz
+
+#Annotation function:
+
+bgzip -c /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.vcf > /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.vcf.gz
+tabix -f -p vcf /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.vcf.gz
+
+
+#To get a boundry we need to plot the features 
+
+#First we add annotations of giab sets to our data
+gatk VariantAnnotator \
+-V /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.vcf.gz \
+-O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.giab.vcf.gz \
+--resource:giab /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/GIAB/NCBI_HG001_GRCh38_1_22_v4.2.1_benchmark.vcf.gz \
+--expression giab.callsets 
+
+
+
+zcat /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.giab.vcf | grep -v "##" | head
+
+
+###1.2.2 Tabulate annotations of interest with VariantsToTable
+
+gatk VariantsToTable \
+-V /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.giab.vcf.gz \
+-F CHROM -F POS -F QUAL \
+-F BaseQRankSum -F MQRankSum -F ReadPosRankSum \
+-F DP -F FS -F MQ -F QD -F SOR \
+-F giab.callsets \
+-GF GQ \
+-O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.giab.txt
+
+
+
+
+
+
+#Next parts are in R
+
+# plotting.R script loads ggplot and gridExtra libraries and defines functions to plot variant annotations 
+library(ggplot2)
+install.packages("gridExtra")
+library(gridExtra)
+
+require(ggplot2, quietly = TRUE)
+require(gridExtra, quietly = TRUE)
+
+get_legend<-function(myggplot){
+  tmp <- ggplot_gtable(ggplot_build(myggplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+}
+
+
+# Function for making density plots of a single annotation
+makeDensityPlot <- function(dataframe, xvar, split, xmin=min(dataframe[xvar], na.rm=TRUE), xmax=max(dataframe[xvar], na.rm=TRUE), alpha=0.5) {
+  
+  if(missing(split)) {
+    return(ggplot(data=dataframe, aes_string(x=xvar)) + xlim(xmin,xmax) + geom_density() )
+  }
+  else {
+    return(ggplot(data=dataframe, aes_string(x=xvar, fill=split)) + xlim(xmin,xmax) + geom_density(alpha=alpha) )
+  }
+}
+
+# Function for making scatter plots of two annotations
+makeScatterPlot <- function(dataframe, xvar, yvar, split, xmin=min(dataframe[xvar], na.rm=TRUE), xmax=max(dataframe[xvar], na.rm=TRUE), ymin=min(dataframe[yvar], na.rm=TRUE), ymax=max(dataframe[yvar], na.rm=TRUE), ptSize=1, alpha=0.6) {
+  if(missing(split)) {
+    return(ggplot(data=dataframe) + aes_string(x=xvar, y=yvar) + xlim(xmin,xmax) + ylim(ymin,ymax) + geom_point(size=ptSize, alpha=alpha) )
+  }
+  else {
+    return(ggplot(data=dataframe) + aes_string(x=xvar, y=yvar) + aes_string(color=split) + xlim(xmin,xmax) + ylim(ymin,ymax) + geom_point(size=ptSize, alpha=alpha) )
+  }
+}
+
+# Function for making scatter plots of two annotations with marginal density plots of each
+makeScatterPlotWithMarginalDensity <- function(dataframe, xvar, yvar, split, xmin=min(dataframe[xvar], na.rm=TRUE), xmax=max(dataframe[xvar], na.rm=TRUE), ymin=min(dataframe[yvar], na.rm=TRUE), ymax=max(dataframe[yvar], na.rm=TRUE), ptSize=1, ptAlpha=0.6, fillAlpha=0.5) {
+  empty <- ggplot()+geom_point(aes(1,1), colour="white") +
+    theme(
+      plot.background = element_blank(), 
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(), 
+      panel.border = element_blank(), 
+      panel.background = element_blank(),
+      axis.title.x = element_blank(),
+      axis.title.y = element_blank(),
+      axis.text.x = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank()
+    )
+  
+  if(missing(split)){
+    scatter <- ggplot(data=dataframe) + aes_string(x=xvar, y=yvar) + geom_point(size=ptSize, alpha=ptAlpha) + xlim(xmin,xmax) + ylim(ymin,ymax) 
+    plot_top <- ggplot(data=dataframe, aes_string(x=xvar)) + geom_density(alpha=fillAlpha) + theme(legend.position="none") + xlim(xmin,xmax) 
+    plot_right <- ggplot(data=dataframe, aes_string(x=yvar)) + geom_density(alpha=fillAlpha) + coord_flip() + theme(legend.position="none") + xlim(ymin,ymax) 
+  } 
+  else{
+    scatter <- ggplot(data=dataframe) + aes_string(x=xvar, y=yvar) + geom_point(size=ptSize, alpha=ptAlpha, aes_string(color=split)) + xlim(xmin,xmax) + ylim(ymin,ymax) 
+    plot_top <- ggplot(data=dataframe, aes_string(x=xvar, fill=split)) + geom_density(alpha=fillAlpha) + theme(legend.position="none") + xlim(xmin,xmax) 
+    plot_right <- ggplot(data=dataframe, aes_string(x=yvar, fill=split)) + geom_density(alpha=fillAlpha) + coord_flip() + theme(legend.position="none") + xlim(ymin,ymax) 
+  }
+  legend <- get_legend(scatter)
+  scatter <- scatter + theme(legend.position="none")
+  temp <- grid.arrange(plot_top, legend, scatter, plot_right, ncol=2, nrow=2, widths=c(4,1), heights=c(1,4))
+  return(temp)
+}
+
+
+
+library(readr)
+SNP.giab <- read_delim("/media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.giab.txt","\t", 
+                             escape_double = FALSE, col_types = cols(giab.callsets = col_character()), trim_ws = TRUE)
+#Below are three different plotting functions. Uncomment them one at a time and see how the graph changes as you alter them. To uncomment, simply remove the # at the beginning of the line, and put it in front of the line you no longer want to graph.
+
+B = makeDensityPlot(SNP.giab, "QUAL") #base quality
+B1 = makeDensityPlot(SNP.giab, "QUAL", xmax=1000)
+B2 = makeDensityPlot(SNP.giab, "QUAL", xmax=3000, split="giab.callsets")
+
+
+# Change up the parameters, e.g. add 'split="giab.callsets"', examine RankSums, FS and SOR
+C = makeDensityPlot(SNP.giab, "QD") # quality normalized by depth
+C = makeDensityPlot(SNP.giab, "QD", split="giab.callsets")
+C = makeDensityPlot(SNP.giab, "BaseQRankSum", split="giab.callsets")
+C = makeDensityPlot(SNP.giab, "MQRankSum", split="giab.callsets", xmax=1, xmin=-1)#pos= ref has a better quality, neg = variant has better quality
+C = makeDensityPlot(SNP.giab, "ReadPosRankSum", split="giab.callsets") #
+C = makeDensityPlot(SNP.giab, "FS", split="giab.callsets") #strand bias
+C = makeDensityPlot(SNP.giab, "SOR", split="giab.callsets") #strand odds ratio
+
+
+# When plotting two annotations, does the combination of the two tell us anything more than either did separately?
+# 
+#   Try adjusting the parameters.
+# Substitute in other annotations. For example, the following recreates the plot on the front page of the tutorial worksheet.
+# F = makeScatterPlotWithMarginalDensity(motherSNP.giab, "QUAL", "DP", split="set", xmax=10000, ymax=100, ptSize=0.5, ptAlpha=0.05)
+
+E = makeScatterPlotWithMarginalDensity(SNP.giab, 
+                                       "QD", "DP", 
+                                       split="giab.callsets", 
+                                       ymax=250, 
+                                       ptSize=0.5, ptAlpha=0.2)
+
+#Filteration for SNP
+
+gatk VariantFiltration \
+    -V /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.vcf.gz \
+-filter "QD < 2.0" --filter-name "QD2" \
+    -filter "QUAL < 30.0" --filter-name "QUAL30" \
+    -filter "SOR > 3.0" --filter-name "SOR3" \
+    -filter "FS > 60.0" --filter-name "FS60" \
+    -filter "MQ < 40.0" --filter-name "MQ40" \
+    -filter "MQRankSum < -12.5" --filter-name "MQRankSum-12.5" \
+    -filter "ReadPosRankSum < -8.0" --filter-name "ReadPosRankSum-8" \
+    -O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.filtered.vcf.gz
+
+
+
+
+# Sanity-check that filtering is as expected by examining filtered records and PASS records.
+zcat /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.filtered.vcf.gz | grep -v '##' | grep -v 'PASS' | head -n20 | cut -f6-10
+
+
+
+#calculate Concordance
+gatk Concordance \
+-eval /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.filtered.vcf.gz \
+-truth /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.giab.vcf.gz \
+-S /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.SNPfilters.txt
+
+# View the results from filtering on multiple annotations
+cat /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.SNPfilters.txt
+
+#Filteration for Indels
+
+gatk VariantFiltration -V /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.INDEL.GATK.vcf -filter "QD < 2.0" --filter-name "QD2" -filter "QUAL < 30.0" --filter-name "QUAL30" -filter "FS > 200.0" --filter-name "FS200" -filter "ReadPosRankSum < -20.0" --filter-name "ReadPosRankSum-20" -O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.INDEL.filtered.GATK.vcf 
+
+
+
+
+###############################
+### 2 VQSR GATK ####
+###############################
+
+###Split SNPs and INDELS###
+
+gatk SelectVariants \
+    -V /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.vcf \
+    -select-type SNP \
+    -O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.vcf
+
+
+gatk SelectVariants \
+   -V /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.vcf \
+    -select-type INDEL \
+   -O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.INDEL.GATK.vcf
+
+
+#SNP
+#Recalibrating SNPs in exome data
+#exome should not be evaluated by DP
+
+gatk VariantRecalibrator \
+	-R  /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/GRCh38_index/genome_assemblies_genome_fasta/ncbi-genomes-2021-11-27/GCF_000001405.39_GRCh38.p13_genomic.fna \
+	-V /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.vcf \
+	-an QD -an MQ -an MQRankSum -an ReadPosRankSum -an FS -an SOR \
+	-mode SNP \
+	--resource:hapmap,known=false,training=true,truth=true,prior=15 /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/Hapmap3.3/NCBI_hapmap_3.3.hg38.vcf \
+	--resource:omni,known=false,training=true,truth=true,prior=12 /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/1000Gomni2.5/NCBI_1000G_omni2.5.hg38.vcf.gz \
+	--resource:1000G,known=false,training=true,truth=false,prior=10 /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/1000G_phase1_SNP/NCBI_1000G_phase1.snps.high_confidence.hg38.vcf.gz \
+	--resource:dbsnp,known=true,training=false,truth=false,prior=7 /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/dbsnp/GCF_000001405.39.gz \
+	-O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/GATK/VQSR/cohort_snps.recal \
+	--tranches-file /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/GATK/VQSR/cohort_snps.tranches \
+	--rscript-file /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/GATK/VQSR/output.plots.R
+
+
+
+#Indel
+
+gatk VariantRecalibrator \
+	--java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true' \
+    -V /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.INDEL.GATK.vcf \
+    -R  /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/GRCh38_index/genome_assemblies_genome_fasta/ncbi-genomes-2021-11-27/GCF_000001405.39_GRCh38.p13_genomic.fna \
+    --trust-all-polymorphic \
+    -tranche 100.0 -tranche 99.95 -tranche 99.9 -tranche 99.5 -tranche 99.0 -tranche 97.0 -tranche 96.0 -tranche 95.0 -tranche 94.0 -tranche 93.5 -tranche 93.0 -tranche 92.0 -tranche 91.0 -tranche 90.0 \
+    -an FS -an ReadPosRankSum -an MQRankSum -an QD -an SOR \
+	-mode INDEL \
+	--max-gaussians 4 \
+    --resource:mills,known=false,training=true,truth=true,prior=12 /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/millis/NCBI_Mills_and_1000G_gold_standard.indels.hg38.vcf \
+    --resource:axiomPoly,known=false,training=true,truth=false,prior=10 /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/Axiom/NCBI_resources_broad_hg38_v0_Axiom_Exome_Plus.genotypes.all_populations.poly.hg38.vcf.gz \
+    --resource:dbsnp,known=true,training=false,truth=false,prior=2 /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/dbsnp/GCF_000001405.39.gz \
+    -O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/GATK/VQSR/Indels/cohort_indels.recal \
+    --tranches-file /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/GATK/VQSR/Indels/cohort_indels.tranches\
+
+
+#Apply VQSR
+
+gatk ApplyVQSR \
+    -V /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.SNP.GATK.vcf \
+    --recal-file /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/GATK/VQSR/SNPs/cohort_snps.recal \
+    --tranches-file /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/GATK/VQSR/SNPs/cohort_snps.tranches \
+    --truth-sensitivity-filter-level 99.9 \
+    --create-output-variant-index true \
+    -mode SNP \
+    -O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/GATK/VQSR/SNPs/snp.recalibrated.vcf.gz \
+
+
+
+#####################
+### Annotation ####
+#####################
+
+#####################################
+### 1.1 Annotation bioinformatic.ca ####
+#####################################
+
+bcftools annotate --rename-chrs /media/myassi/01CD77B76BF0B4F0/NGS/RK/ncbitoensembl.tsv /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.filter.canada.vcf > /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.filter.canada.changedID.vcf
+
+ 
+java  -jar ~/snpEff/snpEff.jar eff \
+-c /home/myassi/snpEff/snpEff.config -v -no-intergenic \
+-i vcf -o vcf GRCh38.p13.RefSeq /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.filter.canada.changedID.vcf >  /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.filter.canada.changedID.snpeff.vcf
+
+
+#get high impact variants
+
+grep HIGH /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.filter.canada.changedID.snpeff.vcf
+
+
+
+#get snp IDs
+bcftools annotate --rename-chrs /media/myassi/01CD77B76BF0B4F0/NGS/RK/ensembltoncbi.tsv /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.filter.canada.changedID.snpeff.vcf > /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.filter.canada.changedID.snpeff.ncbi.vcf
+
+
+gatk  VariantAnnotator \
+-R /media/myassi/01CD77B76BF0B4F0/NGS/RK/GRCh38_index/genome_assemblies_genome_fasta/ncbi-genomes-2021-11-27/GCF_000001405.39_GRCh38.p13_genomic.fna \
+--dbsnp /media/myassi/01CD77B76BF0B4F0/NGS/RK/databases/dbsnp/GCF_000001405.39.gz \
+-V /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.filter.canada.changedID.snpeff.ncbi.vcf \
+-O /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.filter.canada.changedID.snpeff.ncbi.dbsnp.vcf \
+
+
+
+
+awk ' BEGIN {FS="\t" ; p=0; d=0 ; OFS="\t"} \
+{if ($7 == "PASS") {p++; if ($3 != ".") {d++}}} \
+END {print "PASS:", p , "dbSNP:" , d , "%:", d/p} ' /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.filter.canada.changedID.snpeff.ncbi.dbsnp.vcf
+
+
+awk ' BEGIN {FS="\t"} {if ($7 == "PASS" && $3 == ".") {print $0}}' /media/myassi/01CD77B76BF0B4F0/NGS/RK/Analysis/Variants/NA12878.hc.filter.canada.changedID.snpeff.ncbi.dbsnp.vcf
+
+
